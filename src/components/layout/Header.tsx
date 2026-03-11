@@ -7,7 +7,6 @@ import Button from '../ui/Button';
 import Logo from '../ui/Logo';
 import FavoritesDrawer from '../favorites/FavoritesDrawer';
 import { useFavorites } from '../../contexts/FavoritesContext';
-import { useAdmin } from '../../contexts/AdminContext';
 import { NavLink } from '../../types';
 
 const Header: React.FC = () => {
@@ -19,7 +18,6 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const currentLang = location.pathname.split('/')[1] || 'mk';
   const { state: favoritesState } = useFavorites();
-  const { state: adminState } = useAdmin();
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -39,10 +37,6 @@ const Header: React.FC = () => {
     { name: t('nav.about'), href: `/${currentLang}/about` },
     { name: t('nav.gallery'), href: `/${currentLang}/gallery` },
     { name: t('nav.contact'), href: `/${currentLang}/contact` },
-    {
-      name: t('nav.admin'),
-      href: adminState.isAuthenticated ? `/${currentLang}/admin/dashboard` : `/${currentLang}/admin/login`,
-    },
   ];
 
   const toggleLanguage = () => {
