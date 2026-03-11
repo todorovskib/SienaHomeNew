@@ -1,118 +1,117 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { initialProducts } from '../data/products';
-import { Product } from '../types';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './SupabaseAuthContext';
 
 interface AdminState {
   isAuthenticated: boolean;
   editMode: boolean;
-  products: Product[];
+  loading: boolean;
 }
 
 interface AdminContextType {
   state: AdminState;
   editMode: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   toggleEditMode: () => void;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  removeProduct: (id: string) => void;
 }
 
 const AdminContext = createContext<AdminContextType | null>(null);
 
 interface AdminProviderProps {
   children: ReactNode;
-  isAdmin: boolean;
 }
 
-export const AdminProvider: React.FC<AdminProviderProps> = ({ children, isAdmin }) => {
-  // Force initial state to be logged out
-  const [state, setState] = useState<AdminState>({
-    isAuthenticated: false,
-    editMode: false,
-    products: initialProducts
-  });
+const withTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string,
+): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+    }),
+  ]);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    // Simple admin login check
-    if (username === 'admin' && password === 'siena2024') {
-      setState(prev => ({
-        ...prev,
-        isAuthenticated: true
-      }));
-      return true;
+export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
+  const { user, isAdmin, loading, signIn, signOut } = useAuth();
+  const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    if (!user || !isAdmin) {
+      setEditMode(false);
     }
-    return false;
+  }, [user, isAdmin]);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const { error } = await withTimeout(
+      signIn(email, password),
+      15000,
+      'Login timed out. Please try again.',
+    );
+    if (error) {
+      return false;
+    }
+
+    const {
+      data: { user: signedInUser },
+      error: userError,
+    } = await withTimeout(
+      supabase.auth.getUser(),
+      10000,
+      'Fetching authenticated user timed out.',
+    );
+
+    if (userError || !signedInUser) {
+      await withTimeout(signOut(), 10000, 'Sign out timed out.');
+      return false;
+    }
+
+    const { data: profile, error: profileError } = await withTimeout(
+      supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', signedInUser.id)
+        .maybeSingle(),
+      10000,
+      'Fetching profile timed out.',
+    );
+
+    if (profileError || !profile || profile.role !== 'admin') {
+      await withTimeout(signOut(), 10000, 'Sign out timed out.');
+      return false;
+    }
+
+    return true;
   };
 
-  const logout = () => {
-    // Force complete logout
-    setState({
-      isAuthenticated: false,
-      editMode: false,
-      products: initialProducts
-    });
+  const logout = async () => {
+    setEditMode(false);
+    await withTimeout(signOut(), 10000, 'Logout timed out.');
   };
 
   const toggleEditMode = () => {
-    if (!state.isAuthenticated) return;
-    
-    setState(prev => ({
-      ...prev,
-      editMode: !prev.editMode
-    }));
+    if (!user || !isAdmin) {
+      return;
+    }
+    setEditMode((prev) => !prev);
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
-    setState(prev => ({
-      ...prev,
-      products: prev.products.map(product =>
-        product.id === id ? { ...product, ...updates } : product
-      )
-    }));
-  };
-
-  const addProduct = (productData: Omit<Product, 'id'>) => {
-    const newProduct: Product = {
-      ...productData,
-      id: Date.now().toString(),
-      slug: productData.name.toLowerCase().replace(/\s+/g, '-'),
-      main_image_url: productData.imageUrl,
-      additional_images: productData.additionalImages || [],
-      in_stock: productData.inStock,
-      is_published: true,
-      sort_order: state.products.length + 1,
-      created_by: null,
-      updated_by: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    setState(prev => ({
-      ...prev,
-      products: [...prev.products, newProduct]
-    }));
-  };
-
-  const removeProduct = (id: string) => {
-    setState(prev => ({
-      ...prev,
-      products: prev.products.filter(product => product.id !== id)
-    }));
+  const state: AdminState = {
+    isAuthenticated: Boolean(user && isAdmin),
+    editMode,
+    loading,
   };
 
   return (
     <AdminContext.Provider
       value={{
         state,
-        editMode: state.editMode,
+        editMode,
         login,
         logout,
         toggleEditMode,
-        updateProduct,
-        addProduct,
-        removeProduct
       }}
     >
       {children}

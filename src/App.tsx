@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AuthProvider, useAuth } from './contexts/SupabaseAuthContext';
+import { AuthProvider } from './contexts/SupabaseAuthContext';
 import { AdminProvider } from './contexts/AdminContext';
 import { ContentProvider } from './contexts/ContentContext';
 import { ProductProvider } from './contexts/ProductContext';
@@ -23,17 +23,52 @@ import WarrantyPage from './pages/WarrantyPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 
+const DEFAULT_LANGUAGE = 'mk';
+const SUPPORTED_LANGUAGES = ['mk', 'en'] as const;
+
+const ScrollToTop: React.FC = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname, location.search]);
+
+  return null;
+};
+
 // Component to handle language initialization
 const LanguageInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { i18n } = useTranslation();
   const location = useLocation();
+  const [isLanguageReady, setIsLanguageReady] = useState(false);
   
   useEffect(() => {
-    const currentLang = location.pathname.split('/')[1];
-    if (currentLang && ['mk', 'en'].includes(currentLang) && currentLang !== i18n.language) {
-      i18n.changeLanguage(currentLang);
-    }
+    let mounted = true;
+    const routeLang = location.pathname.split('/')[1];
+    const targetLanguage = SUPPORTED_LANGUAGES.includes(routeLang as (typeof SUPPORTED_LANGUAGES)[number])
+      ? routeLang
+      : DEFAULT_LANGUAGE;
+
+    const syncLanguage = async () => {
+      setIsLanguageReady(false);
+      if (i18n.resolvedLanguage !== targetLanguage) {
+        await i18n.changeLanguage(targetLanguage);
+      }
+      if (mounted) {
+        setIsLanguageReady(true);
+      }
+    };
+
+    syncLanguage();
+
+    return () => {
+      mounted = false;
+    };
   }, [location.pathname, i18n]);
+
+  if (!isLanguageReady) {
+    return null;
+  }
   
   return <>{children}</>;
 };
@@ -42,7 +77,7 @@ const LanguageInitializer: React.FC<{ children: React.ReactNode }> = ({ children
 const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   
   return (
-    <AdminProvider isAdmin={false}>
+    <AdminProvider>
       <ContentProvider>
         <ProductProvider>
           <FavoritesProvider>
@@ -57,16 +92,15 @@ const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 };
 
 function App() {
-  const defaultLanguage = 'mk';
-
   // Redirect root to default language
   const RootRedirect = () => {
-    return <Navigate to={`/${defaultLanguage}`} replace />;
+    return <Navigate to={`/${DEFAULT_LANGUAGE}`} replace />;
   };
 
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <LanguageInitializer>
           <AppProviders>
             <div className="min-h-screen bg-white">
@@ -97,7 +131,7 @@ function App() {
                   ))}
 
                   {/* Catch all redirect */}
-                  <Route path="*" element={<Navigate to={`/${defaultLanguage}`} replace />} />
+                  <Route path="*" element={<Navigate to={`/${DEFAULT_LANGUAGE}`} replace />} />
                 </Routes>
               </main>
               <Footer />

@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight } from 'lucide-react';
 import Container from '../ui/Container';
 import Button from '../ui/Button';
-import { categories, initialProducts } from '../../data/products';
+import { useProducts } from '../../contexts/ProductContext';
 
 const ProductShowcase: React.FC = () => {
   const { t } = useTranslation();
+  const { products } = useProducts();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const navigate = useNavigate();
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1] || 'mk';
   
-  const products = initialProducts;
+  const categories = useMemo(
+    () => ['All', ...Array.from(new Set(products.map((product) => product.category)))],
+    [products],
+  );
+
   const filteredProducts = selectedCategory === 'All'
     ? products.slice(0, 6)
     : products.filter(product => product.category === selectedCategory).slice(0, 6);
@@ -69,7 +74,7 @@ const ProductShowcase: React.FC = () => {
             >
               <div className="relative h-48 sm:h-56 md:h-64 lg:h-72 overflow-hidden group">
                 <img
-                  src={product.main_image_url || product.imageUrl}
+                  src={product.imageUrl}
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
@@ -80,7 +85,7 @@ const ProductShowcase: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                {!product.in_stock && (
+                {!product.inStock && (
                   <div className="absolute top-2 md:top-4 right-2 md:right-4 bg-red-500 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1 rounded-full">
                     {t('products.outOfStock')}
                   </div>

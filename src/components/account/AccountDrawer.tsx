@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Settings, Heart, Bell, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { X, User, Settings, Heart, LogOut, LogIn, UserPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { useAdmin } from '../../contexts/AdminContext';
@@ -16,7 +16,7 @@ interface AccountDrawerProps {
 const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFavorites }) => {
   const { t } = useTranslation();
   const { user, profile, isAdmin, signIn, signOut, signUp } = useAuth();
-  const { state: adminState, login: adminLogin, logout: adminLogout, toggleEditMode } = useAdmin();
+  const { state: adminState, logout: adminLogout, toggleEditMode } = useAdmin();
   const { state: favoritesState } = useFavorites();
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,38 +30,27 @@ const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if it's admin login
-    if (formData.email === 'admin' && formData.password === 'siena2024') {
-      const success = await adminLogin('admin', 'siena2024');
-      if (success) {
-        setFormData({ name: '', email: '', password: '' });
-        onClose();
-      }
+
+    let success = false;
+
+    if (showLogin) {
+      const { error } = await signIn(formData.email, formData.password);
+      success = !error;
     } else {
-      // Regular user login/signup
-      let success = false;
-      
-      if (showLogin) {
-        const { error } = await signIn(formData.email, formData.password);
-        success = !error;
-      } else {
-        const { error } = await signUp(formData.email, formData.password, { full_name: formData.name });
-        success = !error;
-      }
-    
-      if (success) {
-        setFormData({ name: '', email: '', password: '' });
-      }
+      const { error } = await signUp(formData.email, formData.password, { full_name: formData.name });
+      success = !error;
+    }
+
+    if (success) {
+      setFormData({ name: '', email: '', password: '' });
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (adminState.isAuthenticated) {
-      adminLogout();
-    }
-    if (user) {
-      signOut();
+      await adminLogout();
+    } else if (user) {
+      await signOut();
     }
     onClose();
   };
@@ -110,7 +99,7 @@ const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFa
                       </div>
                       <div>
                         <h3 className="font-semibold text-siena-800">Administrator</h3>
-                        <p className="text-sm text-siena-600">admin@sienahome.com</p>
+                        <p className="text-sm text-siena-600">{user?.email || 'Admin account'}</p>
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Admin</span>
                       </div>
                     </div>
@@ -222,9 +211,8 @@ const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFa
                   
                   {/* Admin Login Helper */}
                   <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
-                    <p className="text-xs text-blue-700 font-medium mb-1">Admin Login:</p>
-                    <p className="text-xs text-blue-600">Email: admin</p>
-                    <p className="text-xs text-blue-600">Password: siena2024</p>
+                    <p className="text-xs text-blue-700 font-medium mb-1">Admin Access:</p>
+                    <p className="text-xs text-blue-600">Sign in with a Supabase account that has role set to admin.</p>
                   </div>
                 </div>
 

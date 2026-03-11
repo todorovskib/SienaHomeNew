@@ -27,6 +27,27 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
+const withTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string,
+): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -39,7 +60,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
-        loadProfile(session.user.id)
+        loadProfile(
+          session.user.id,
+          session.user.email ?? '',
+          (session.user.user_metadata?.full_name as string | undefined) ?? '',
+        )
       } else {
         setLoading(false)
       }
@@ -48,12 +73,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       
       if (session?.user) {
-        await loadProfile(session.user.id)
+        // Keep auth callback non-blocking to avoid deadlocks in sign-in flows.
+        void loadProfile(
+          session.user.id,
+          session.user.email ?? '',
+          (session.user.user_metadata?.full_name as string | undefined) ?? '',
+        )
       } else {
         setProfile(null)
         setLoading(false)
@@ -63,15 +93,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => subscription.unsubscribe()
   }, [])
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async (userId: string, email = '', fullName = '') => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
+      const { data: profile, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single(),
+        15000,
+        'Loading profile timed out.',
+      )
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code === 'PGRST116') {
+        const { data: createdProfile, error: createError } = await withTimeout(
+          supabase
+            .from('profiles')
+            .insert({
+              user_id: userId,
+              email,
+              full_name: fullName,
+              role: 'user',
+            })
+            .select('*')
+            .single(),
+          15000,
+          'Creating profile timed out.',
+        )
+
+        if (createError) {
+          console.error('Error creating profile:', createError)
+          setProfile(null)
+        } else {
+          setProfile(createdProfile)
+        }
+      } else if (error) {
         console.error('Error loading profile:', error)
       } else {
         setProfile(profile)
@@ -85,35 +141,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true)
-    const result = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    setLoading(false)
-    return result
+    try {
+      return await withTimeout(
+        supabase.auth.signInWithPassword({
+          email,
+          password,
+        }),
+        15000,
+        'Sign in timed out. Please try again.',
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   const signUp = async (email: string, password: string, options?: { full_name?: string }) => {
     setLoading(true)
-    const result = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: options?.full_name,
-        },
-      },
-    })
-    setLoading(false)
-    return result
+    try {
+      return await withTimeout(
+        supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: options?.full_name,
+            },
+          },
+        }),
+        15000,
+        'Sign up timed out. Please try again.',
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   const signOut = async () => {
     setLoading(true)
-    const result = await supabase.auth.signOut()
-    setProfile(null)
-    setLoading(false)
-    return result
+    try {
+      return await withTimeout(
+        supabase.auth.signOut(),
+        10000,
+        'Sign out timed out. Please try again.',
+      )
+    } finally {
+      setProfile(null)
+      setLoading(false)
+    }
   }
 
   const isAdmin = profile?.role === 'admin'

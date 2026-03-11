@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Search, Filter } from 'lucide-react';
-import { categories } from '../data/products';
-import { useAdmin } from '../contexts/AdminContext';
+import { useProducts } from '../contexts/ProductContext';
 import Container from '../components/ui/Container';
 import Button from '../components/ui/Button';
 
@@ -16,7 +15,7 @@ interface FilterState {
 
 const ProductsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { state: adminState } = useAdmin();
+  const { products } = useProducts();
   const navigate = useNavigate();
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1];
@@ -31,7 +30,10 @@ const ProductsPage: React.FC = () => {
   });
 
   // Get unique values for filters
-  const products = adminState.products;
+  const categories = useMemo(
+    () => ['All', ...Array.from(new Set(products.map((product) => product.category)))],
+    [products],
+  );
   const allMaterials = [...new Set(products.map(p => p.specifications.material))];
   const allDimensions = [...new Set(products.map(p => `${p.dimensions.width} CM`))];
 
@@ -83,7 +85,7 @@ const ProductsPage: React.FC = () => {
     navigate(`/${currentLang}/products/${productId}`);
   };
 
-  const updateFilter = (key: keyof FilterState, value: any) => {
+  const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 

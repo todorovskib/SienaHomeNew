@@ -1,21 +1,22 @@
 import React from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ProductDetails from '../components/product/ProductDetails';
 import RelatedProducts from '../components/product/RelatedProducts';
-import { useAdmin } from '../contexts/AdminContext';
+import { useProducts } from '../contexts/ProductContext';
 import Container from '../components/ui/Container';
 
 const ProductPage: React.FC = () => {
   const { productId } = useParams();
   const { t } = useTranslation();
-  const { state: adminState } = useAdmin();
+  const { products } = useProducts();
+  const location = useLocation();
+  const currentLang = location.pathname.split('/')[1] || 'mk';
   
-  const products = adminState.products;
   const product = products.find(p => p.id === productId);
   
   if (!product) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={`/${currentLang}/products`} replace />;
   }
 
   const productWithDefaults = {
@@ -35,15 +36,15 @@ const ProductPage: React.FC = () => {
         <nav className="py-4">
           <ol className="flex items-center space-x-2 text-sm">
             <li>
-              <a href="/" className="text-gray-500 hover:text-teal-600">
+              <Link to={`/${currentLang}`} className="text-gray-500 hover:text-teal-600">
                 {t('nav.home')}
-              </a>
+              </Link>
             </li>
             <li className="text-gray-500">/</li>
             <li>
-              <a href="/#products" className="text-gray-500 hover:text-teal-600">
+              <Link to={`/${currentLang}/products`} className="text-gray-500 hover:text-teal-600">
                 {t('nav.products')}
-              </a>
+              </Link>
             </li>
             <li className="text-gray-500">/</li>
             <li className="text-teal-600">{product.name}</li>

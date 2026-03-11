@@ -1,6 +1,7 @@
 export interface Product {
   id: string;
   name: string;
+  slug: string;
   category: string;
   price: number;
   description: string;
@@ -10,16 +11,23 @@ export interface Product {
   imageUrl: string;
   additionalImages: string[];
   inStock: boolean;
+  isPublished: boolean;
+  sortOrder: number;
   specifications: {
     material: string;
     finish: string;
     handleType: string;
     hingeType: string;
     mountingType: string;
+    mirrorWidth?: number;
+    mirrorHeight?: number;
+    [key: string]: string | number | undefined;
   };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface ProductDetails extends Product {}
+export type ProductDetails = Product;
 
 export interface Color {
   name: string;

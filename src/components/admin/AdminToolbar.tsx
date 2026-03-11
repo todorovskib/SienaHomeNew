@@ -14,7 +14,7 @@ const AdminToolbar: React.FC = () => {
   if (!adminState.isAuthenticated) return null;
 
   const handleLogout = async () => {
-    logout();
+    await logout();
     setIsExpanded(false);
   };
 

@@ -21,13 +21,6 @@ const Header: React.FC = () => {
   const { state: favoritesState } = useFavorites();
   const { state: adminState } = useAdmin();
 
-  // Initialize language on component mount
-  useEffect(() => {
-    if (currentLang && currentLang !== i18n.language) {
-      i18n.changeLanguage(currentLang);
-    }
-  }, [currentLang, i18n]);
-
   // Close mobile menu when route changes
   useEffect(() => {
     setIsOpen(false);
@@ -46,8 +39,10 @@ const Header: React.FC = () => {
     { name: t('nav.about'), href: `/${currentLang}/about` },
     { name: t('nav.gallery'), href: `/${currentLang}/gallery` },
     { name: t('nav.contact'), href: `/${currentLang}/contact` },
-    // Add admin link only when admin is authenticated
-    ...(adminState.isAuthenticated ? [{ name: t('nav.admin'), href: `/${currentLang}/admin/dashboard` }] : []),
+    {
+      name: t('nav.admin'),
+      href: adminState.isAuthenticated ? `/${currentLang}/admin/dashboard` : `/${currentLang}/admin/login`,
+    },
   ];
 
   const toggleLanguage = () => {

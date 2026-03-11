@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Shield, Eye, EyeOff } from 'lucide-react';
@@ -7,14 +7,20 @@ import Container from '../components/ui/Container';
 import Button from '../components/ui/Button';
 
 const AdminLoginPage: React.FC = () => {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAdmin();
+  const { state: adminState, login } = useAdmin();
   const navigate = useNavigate();
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1] || 'mk';
+
+  useEffect(() => {
+    if (adminState.isAuthenticated) {
+      navigate(`/${currentLang}/admin/dashboard`);
+    }
+  }, [adminState.isAuthenticated, navigate, currentLang]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,14 +28,14 @@ const AdminLoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(credentials.username, credentials.password);
+      const success = await login(credentials.email, credentials.password);
       if (success) {
-        navigate(`/${currentLang}`);
+        navigate(`/${currentLang}/admin/dashboard`);
       } else {
-        setError('Invalid username or password');
+        setError('Invalid credentials or account does not have admin role.');
       }
-    } catch (err) {
-      setError('Login failed. Please try again.');
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +57,7 @@ const AdminLoginPage: React.FC = () => {
                 <Shield className="h-8 w-8 text-siena-600" />
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Admin Login</h1>
-              <p className="text-gray-600">Access the product management system</p>
+              <p className="text-gray-600">Sign in with your Supabase admin account</p>
             </div>
 
             {/* Login Form */}
@@ -62,24 +68,17 @@ const AdminLoginPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Admin Credentials Helper */}
-              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md text-sm">
-                <p><strong>Admin Login:</strong></p>
-                <p>Username: admin</p>
-                <p>Password: siena2024</p>
-              </div>
-
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                  Username
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
                 </label>
                 <input
-                  type="text"
-                  id="username"
-                  value={credentials.username}
-                  onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+                  type="email"
+                  id="email"
+                  value={credentials.email}
+                  onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent transition-colors duration-200"
-                  placeholder="Enter admin username"
+                  placeholder="Enter admin email"
                   required
                 />
               </div>

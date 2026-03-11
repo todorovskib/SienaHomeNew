@@ -1,8 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Product } from '../../types';
-import { useAdmin } from '../../contexts/AdminContext';
+import { useProducts } from '../../contexts/ProductContext';
 import { ChevronRight } from 'lucide-react';
 import Button from '../ui/Button';
 
@@ -12,12 +11,11 @@ interface RelatedProductsProps {
 
 const RelatedProducts: React.FC<RelatedProductsProps> = ({ currentProductId }) => {
   const { t } = useTranslation();
-  const { state: adminState, updateSiteContent } = useAdmin();
+  const { products } = useProducts();
   const navigate = useNavigate();
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1];
   
-  const products = adminState.products;
   const relatedProducts = products
     .filter(product => product.id !== currentProductId)
     .slice(0, 3);

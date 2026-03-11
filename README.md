@@ -45,6 +45,21 @@ npm run dev
 This repo includes SQL migrations in `supabase/migrations`.
 Run them in filename order in the Supabase SQL Editor, or use Supabase CLI with your project.
 
+Important migration for admin CRUD security:
+
+- `supabase/migrations/20260305170000_admin_product_management_hardening.sql`
+
+## Admin Login Setup
+
+1. In Supabase Dashboard, create a user in **Authentication > Users**.
+2. In **Table Editor > profiles**, set that user `role` to `admin`.
+3. Open the app and go to:
+   - `http://localhost:5173/mk/admin/login` or
+   - `http://localhost:5173/en/admin/login`
+4. Sign in with that admin account.
+
+After login, admin users can create, update, and delete products directly from the admin dashboard.
+
 ## Build for Production
 
 ```bash
