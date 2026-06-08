@@ -2,16 +2,19 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useProducts } from '../../contexts/ProductContext';
+import { useAnalytics } from '../../contexts/AnalyticsContext';
 import { ChevronRight } from 'lucide-react';
 import Button from '../ui/Button';
+import { formatPrice } from '../../utils/price';
 
 interface RelatedProductsProps {
   currentProductId: string;
 }
 
 const RelatedProducts: React.FC<RelatedProductsProps> = ({ currentProductId }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { products } = useProducts();
+  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1];
@@ -21,6 +24,16 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({ currentProductId }) =
     .slice(0, 3);
 
   const handleProductClick = (productId: string) => {
+    const product = products.find((item) => item.id === productId);
+    trackEvent('product_card_click', {
+      entityType: 'product',
+      entityId: productId,
+      metadata: {
+        source: 'related_products',
+        product_name: product?.name,
+        product_slug: product?.slug,
+      },
+    });
     // Scroll to top when navigating to a new product
     window.scrollTo({ top: 0, behavior: 'smooth' });
     navigate(`/${currentLang}/products/${productId}`);
@@ -66,7 +79,9 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({ currentProductId }) =
                 </p>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-xl font-bold text-siena-600">{product.price}</span>
+                  <span className="text-xl font-bold text-siena-600">
+                    {formatPrice(product.price, i18n.resolvedLanguage)}
+                  </span>
                   <Button 
                     variant="outline" 
                     size="sm"

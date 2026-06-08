@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Search, Filter } from 'lucide-react';
 import { useProducts } from '../contexts/ProductContext';
+import { useAnalytics } from '../contexts/AnalyticsContext';
+import { formatPrice } from '../utils/price';
 import Container from '../components/ui/Container';
 import Button from '../components/ui/Button';
 
@@ -14,8 +16,9 @@ interface FilterState {
 }
 
 const ProductsPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { products } = useProducts();
+  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1];
@@ -45,8 +48,8 @@ const ProductsPage: React.FC = () => {
     return text;
   };
 
-  const filteredProducts = products
-    .filter(product => {
+  const filteredProducts = useMemo(
+    () => products.filter(product => {
       // Category filter
       if (filters.category !== 'All' && product.category !== filters.category) {
         return false;
@@ -79,14 +82,72 @@ const ProductsPage: React.FC = () => {
       }
       
       return true;
+    }),
+    [filters.category, filters.dimensions, filters.inStock, filters.materials, products, searchQuery, t],
+  );
+
+  const filteredProductIds = useMemo(
+    () => filteredProducts.map((product) => product.id).join(','),
+    [filteredProducts],
+  );
+
+  useEffect(() => {
+    trackEvent('product_list_view', {
+      entityType: 'product_list',
+      metadata: {
+        result_count: filteredProducts.length,
+        product_ids: filteredProducts.map((product) => product.id),
+        category: filters.category,
+        dimensions: filters.dimensions,
+        materials: filters.materials,
+        in_stock: filters.inStock,
+        search_query: searchQuery.trim() || null,
+      },
     });
+  }, [filteredProductIds, filters.category, filters.dimensions, filters.inStock, filters.materials, filteredProducts, searchQuery, trackEvent]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      trackEvent('product_search', {
+        entityType: 'product_list',
+        metadata: {
+          query,
+          result_count: filteredProducts.length,
+        },
+      });
+    }, 600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [filteredProducts.length, searchQuery, trackEvent]);
 
   const handleProductClick = (productId: string) => {
+    const product = products.find((item) => item.id === productId);
+    trackEvent('product_card_click', {
+      entityType: 'product',
+      entityId: productId,
+      metadata: {
+        source: 'products_page',
+        product_name: product?.name,
+        product_slug: product?.slug,
+      },
+    });
     navigate(`/${currentLang}/products/${productId}`);
   };
 
   const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    trackEvent('filter_changed', {
+      entityType: 'product_list',
+      metadata: {
+        filter: key,
+        value,
+      },
+    });
   };
 
   const toggleArrayFilter = (key: 'dimensions' | 'materials', value: string) => {
@@ -96,6 +157,13 @@ const ProductsPage: React.FC = () => {
         ? prev[key].filter(item => item !== value)
         : [...prev[key], value]
     }));
+    trackEvent('filter_changed', {
+      entityType: 'product_list',
+      metadata: {
+        filter: key,
+        value,
+      },
+    });
   };
 
   const clearFilters = () => {
@@ -106,6 +174,9 @@ const ProductsPage: React.FC = () => {
       inStock: null
     });
     setSearchQuery('');
+    trackEvent('filters_cleared', {
+      entityType: 'product_list',
+    });
   };
 
   const FilterSidebar = () => (
@@ -307,7 +378,10 @@ const ProductsPage: React.FC = () => {
                       {getTranslatedText(product.description)}
                     </p>
 
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xl font-bold text-siena-700">
+                        {formatPrice(product.price, i18n.resolvedLanguage)}
+                      </span>
                       <Button
                         variant="outline"
                         size="sm"

@@ -5,10 +5,13 @@ import { ChevronRight } from 'lucide-react';
 import Container from '../ui/Container';
 import Button from '../ui/Button';
 import { useProducts } from '../../contexts/ProductContext';
+import { useAnalytics } from '../../contexts/AnalyticsContext';
+import { formatPrice } from '../../utils/price';
 
 const ProductShowcase: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { products } = useProducts();
+  const { trackEvent } = useAnalytics();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,6 +27,16 @@ const ProductShowcase: React.FC = () => {
     : products.filter(product => product.category === selectedCategory).slice(0, 6);
 
   const handleProductClick = (productId: string) => {
+    const product = products.find((item) => item.id === productId);
+    trackEvent('product_card_click', {
+      entityType: 'product',
+      entityId: productId,
+      metadata: {
+        source: 'home_showcase',
+        product_name: product?.name,
+        product_slug: product?.slug,
+      },
+    });
     navigate(`/${currentLang}/products/${productId}`);
   };
 
@@ -96,7 +109,10 @@ const ProductShowcase: React.FC = () => {
                 <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
                 <p className="text-gray-600 mb-4 line-clamp-2 text-sm md:text-base">{getTranslatedText(product.description || '')}</p>
                 
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-lg font-bold text-siena-700">
+                    {formatPrice(product.price, i18n.resolvedLanguage)}
+                  </span>
                   <Button
                     variant="outline"
                     size="sm"

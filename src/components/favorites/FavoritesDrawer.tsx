@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFavorites } from '../../contexts/FavoritesContext';
 import { useCart } from '../../contexts/CartContext';
+import { useAnalytics } from '../../contexts/AnalyticsContext';
+import { formatPrice } from '../../utils/price';
 import Button from '../ui/Button';
 
 interface FavoritesDrawerProps {
@@ -12,20 +14,42 @@ interface FavoritesDrawerProps {
 }
 
 const FavoritesDrawer: React.FC<FavoritesDrawerProps> = ({ isOpen, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1] || 'mk';
   const { state, removeFromFavorites, clearFavorites } = useFavorites();
   const { addToCart } = useCart();
+  const { trackEvent } = useAnalytics();
 
   const handleProductClick = (productId: string) => {
+    const item = state.items.find((favorite) => favorite.product.id === productId);
+    trackEvent('product_card_click', {
+      entityType: 'product',
+      entityId: productId,
+      metadata: {
+        source: 'favorites_drawer',
+        product_name: item?.product.name,
+        product_slug: item?.product.slug,
+      },
+    });
     navigate(`/${currentLang}/products/${productId}`);
     onClose();
   };
 
   const handleAddToCart = (product: any) => {
     addToCart(product, 1);
+    trackEvent('add_to_cart', {
+      entityType: 'product',
+      entityId: product.id,
+      eventValue: product.price,
+      metadata: {
+        source: 'favorites_drawer',
+        product_name: product.name,
+        quantity: 1,
+        price: product.price,
+      },
+    });
   };
 
   if (!isOpen) return null;
@@ -84,6 +108,9 @@ const FavoritesDrawer: React.FC<FavoritesDrawerProps> = ({ isOpen, onClose }) =>
                         </h3>
                         <p className="text-xs text-gray-500 mt-1">
                           {t('favorites.addedOn')} {item.dateAdded.toLocaleDateString()}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-siena-700">
+                          {formatPrice(item.product.price, i18n.resolvedLanguage)}
                         </p>
                         
                         <div className="flex items-center space-x-2 mt-3">

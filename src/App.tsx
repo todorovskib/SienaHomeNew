@@ -7,6 +7,7 @@ import { ContentProvider } from './contexts/ContentContext';
 import { ProductProvider } from './contexts/ProductContext';
 import { CartProvider } from './contexts/CartContext';
 import { FavoritesProvider } from './contexts/FavoritesContext';
+import { AnalyticsProvider } from './contexts/AnalyticsContext';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import AdminToolbar from './components/admin/AdminToolbar';
@@ -78,15 +79,17 @@ const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   
   return (
     <AdminProvider>
-      <ContentProvider>
-        <ProductProvider>
-          <FavoritesProvider>
-            <CartProvider>
-              {children}
-            </CartProvider>
-          </FavoritesProvider>
-        </ProductProvider>
-      </ContentProvider>
+      <AnalyticsProvider>
+        <ContentProvider>
+          <ProductProvider>
+            <FavoritesProvider>
+              <CartProvider>
+                {children}
+              </CartProvider>
+            </FavoritesProvider>
+          </ProductProvider>
+        </ContentProvider>
+      </AnalyticsProvider>
     </AdminProvider>
   );
 };
@@ -125,10 +128,16 @@ function App() {
                       <Route path={`/${lang}/warranty`} element={<WarrantyPage />} />
                       
                       {/* Admin routes */}
+                      <Route path={`/${lang}/admin`} element={<Navigate to={`/${lang}/admin/login`} replace />} />
                       <Route path={`/${lang}/admin/login`} element={<AdminLoginPage />} />
                       <Route path={`/${lang}/admin/dashboard`} element={<AdminDashboardPage />} />
                     </React.Fragment>
                   ))}
+
+                  {/* Non-localized admin shortcuts */}
+                  <Route path="/admin" element={<Navigate to={`/${DEFAULT_LANGUAGE}/admin/login`} replace />} />
+                  <Route path="/admin/login" element={<Navigate to={`/${DEFAULT_LANGUAGE}/admin/login`} replace />} />
+                  <Route path="/admin/dashboard" element={<Navigate to={`/${DEFAULT_LANGUAGE}/admin/dashboard`} replace />} />
 
                   {/* Catch all redirect */}
                   <Route path="*" element={<Navigate to={`/${DEFAULT_LANGUAGE}`} replace />} />

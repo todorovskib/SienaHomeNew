@@ -48,6 +48,8 @@ Run them in filename order in the Supabase SQL Editor, or use Supabase CLI with 
 Important migration for admin CRUD security:
 
 - `supabase/migrations/20260305170000_admin_product_management_hardening.sql`
+- `supabase/migrations/20260608123000_commerce_analytics_checkout.sql`
+- `supabase/migrations/20260608124500_advanced_analytics.sql`
 
 ## Admin Login Setup
 
@@ -59,6 +61,84 @@ Important migration for admin CRUD security:
 4. Sign in with that admin account.
 
 After login, admin users can create, update, and delete products directly from the admin dashboard.
+
+## Commerce, Analytics, and Checkout
+
+The commerce migration restores product prices, creates first-party analytics tables, and creates checkout order tables.
+
+Run these migrations in Supabase SQL Editor:
+
+```text
+supabase/migrations/20260608123000_commerce_analytics_checkout.sql
+supabase/migrations/20260608124500_advanced_analytics.sql
+```
+
+Analytics starts only after the visitor accepts the cookie banner. Admin users can see the advanced analytics dashboard inside the admin page.
+
+Tracked analytics include:
+
+- Page views, time on page, scroll depth, buttons, links, and custom clicks.
+- Product views, product card clicks, favorite adds/removes, quote clicks, add-to-cart events, checkout starts, checkout failures, checkout success returns, and checkout cancellations.
+- Visitor ID, session ID, page path, language, traffic source, UTM campaign fields, referrer domain, browser, OS, device type, viewport, screen size, and event metadata.
+- Admin dashboard metrics for visitors, sessions, product funnel, cart rate, checkout rate, conversion rate, top products, top pages, top searches, traffic sources, devices, browsers, daily activity, and recent events.
+
+How to use analytics:
+
+1. Open the site in a browser and accept the analytics cookie banner.
+2. Visit product pages, search/filter products, click product cards, add products to cart, and start checkout.
+3. Log in as an admin and open `http://localhost:5173/mk/admin`.
+4. Use the 7/30/90 day range buttons to change the reporting period.
+5. Click `Export CSV` to download the raw event data for spreadsheets or deeper analysis.
+
+Campaign tracking works with UTM links. Example:
+
+```text
+https://your-domain.com/mk/products?utm_source=facebook&utm_medium=paid&utm_campaign=june_sale
+```
+
+Supabase also includes reporting views you can query in SQL Editor:
+
+```sql
+select * from public.analytics_daily_summary;
+select * from public.analytics_top_pages;
+select * from public.analytics_product_funnel;
+select * from public.analytics_revenue_summary;
+```
+
+Checkout uses a Supabase Edge Function so payment provider secrets are never exposed in the browser:
+
+```text
+supabase/functions/create-checkout-session/index.ts
+supabase/functions/stripe-webhook/index.ts
+```
+
+To connect real payments, deploy both functions and set these Supabase Edge Function secrets:
+
+```env
+STRIPE_SECRET_KEY=sk_live_or_test_key
+STRIPE_WEBHOOK_SECRET=whsec_from_stripe_webhook
+SITE_URL=https://your-domain.com
+CHECKOUT_CURRENCY=mkd
+```
+
+In Stripe Dashboard, create a webhook endpoint pointing to:
+
+```text
+https://your-project.supabase.co/functions/v1/stripe-webhook
+```
+
+Subscribe the webhook to:
+
+- `checkout.session.completed`
+- `checkout.session.expired`
+
+The webhook marks orders as `paid` or `cancelled` and records `purchase_completed` or `checkout_expired` analytics events.
+
+For local display currency, set:
+
+```env
+VITE_STORE_CURRENCY=MKD
+```
 
 ## Build for Production
 

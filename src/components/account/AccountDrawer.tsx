@@ -208,12 +208,6 @@ const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFa
                   <p className="text-sm text-siena-600">
                     {showLogin ? t('account.loginSubtitle') : t('account.registerSubtitle')}
                   </p>
-                  
-                  {/* Admin Login Helper */}
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
-                    <p className="text-xs text-blue-700 font-medium mb-1">Admin Access:</p>
-                    <p className="text-xs text-blue-600">Sign in with a Supabase account that has role set to admin.</p>
-                  </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">

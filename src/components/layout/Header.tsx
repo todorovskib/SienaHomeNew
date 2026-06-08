@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Heart } from 'lucide-react';
+import { Menu, X, Heart, ShoppingCart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Container from '../ui/Container';
 import Button from '../ui/Button';
 import Logo from '../ui/Logo';
 import FavoritesDrawer from '../favorites/FavoritesDrawer';
+import CartDrawer from '../cart/CartDrawer';
 import { useFavorites } from '../../contexts/FavoritesContext';
+import { useCart } from '../../contexts/CartContext';
 import { NavLink } from '../../types';
 
 const Header: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const currentLang = location.pathname.split('/')[1] || 'mk';
   const { state: favoritesState } = useFavorites();
+  const { state: cartState } = useCart();
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -141,6 +145,21 @@ const Header: React.FC = () => {
                   </span>
                 )}
               </button>
+
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className={`relative transition-colors duration-300 p-2 rounded-full ${
+                  shouldHaveDarkBg ? 'text-primary-800 hover:text-primary-600' : 'text-white hover:text-teal-200'
+                }`}
+                aria-label="Shopping cart"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartState.itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-siena-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartState.itemCount}
+                  </span>
+                )}
+              </button>
               
               <Link to={`/${currentLang}/contact`}>
                 <Button variant="primary" size="sm">
@@ -162,6 +181,21 @@ const Header: React.FC = () => {
                 {favoritesState.itemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                     {favoritesState.itemCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className={`relative p-2 transition-colors duration-300 ${
+                  shouldHaveDarkBg ? 'text-primary-800 hover:text-primary-600' : 'text-white hover:text-teal-200'
+                } focus:outline-none`}
+                aria-label="Shopping cart"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartState.itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-siena-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    {cartState.itemCount}
                   </span>
                 )}
               </button>
@@ -265,6 +299,7 @@ const Header: React.FC = () => {
       </header>
       
       <FavoritesDrawer isOpen={isFavoritesOpen} onClose={() => setIsFavoritesOpen(false)} />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
   );
 };
