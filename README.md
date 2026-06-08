@@ -154,6 +154,36 @@ You can deploy `dist` on Netlify, Vercel, Cloudflare Pages, or your own server.
 
 Important: this is a single-page app, so configure route fallback to `index.html`.
 - Netlify fallback is already included in `public/_redirects`.
+- Vercel fallback, cache headers, and basic security headers are configured in `vercel.json`.
+
+## Vercel Setup
+
+The deployed admin paths are:
+
+```text
+https://sienahome.vercel.app/mk/admin
+https://sienahome.vercel.app/mk/admin/login
+https://sienahome.vercel.app/mk/admin/dashboard
+```
+
+In Vercel, set these environment variables for Production, Preview, and Development:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+VITE_STORE_CURRENCY=MKD
+```
+
+Build settings:
+
+```text
+Framework Preset: Vite
+Build Command: npm run build
+Output Directory: dist
+Install Command: npm install
+```
+
+If an admin route goes back to the home page, redeploy after confirming `vercel.json` exists in GitHub. Vercel must serve all deep React routes through `index.html`.
 
 ## GitHub Workflow
 
