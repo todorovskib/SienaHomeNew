@@ -378,6 +378,68 @@
     "checkoutNotConfigured": "Checkout is not configured yet.",
     "clear": "Clear Cart"
   },
+  "checkout": {
+    "kicker": "Secure checkout",
+    "title": "Complete your order",
+    "subtitle": "Add your contact and delivery details, then choose online payment or pay on delivery.",
+    "backToProducts": "Back to products",
+    "contact": {
+      "title": "Contact information",
+      "fullName": "Full name",
+      "email": "Email",
+      "phone": "Phone number"
+    },
+    "delivery": {
+      "title": "Delivery information",
+      "address": "Address",
+      "city": "City",
+      "postalCode": "Postal code",
+      "notes": "Delivery notes"
+    },
+    "payment": {
+      "title": "Payment method",
+      "onlineTitle": "Card / Apple Pay / Google Pay",
+      "onlineDescription": "Pay securely online through Stripe. Wallet buttons appear when supported by the browser and Stripe settings.",
+      "wallets": "Wallet-ready",
+      "cashTitle": "Pay on delivery",
+      "cashDescription": "Place the order now and pay when the product is delivered."
+    },
+    "summary": {
+      "title": "Order summary",
+      "subtotal": "Subtotal",
+      "delivery": "Delivery",
+      "deliveryNote": "Calculated after confirmation"
+    },
+    "actions": {
+      "processing": "Processing...",
+      "payOnline": "Continue to payment",
+      "placeCashOrder": "Place pay-on-door order"
+    },
+    "security": {
+      "online": "Online payments are handled by Stripe. Siena Home never stores card details.",
+      "cash": "Your order is saved and our team will contact you to confirm delivery."
+    },
+    "errors": {
+      "required": "Please fill in name, phone, address, and city.",
+      "emailRequired": "Email is required for online payment.",
+      "emptyCart": "Your cart is empty.",
+      "orderFailed": "Could not create the order. Please try again."
+    },
+    "empty": {
+      "title": "Your cart is empty",
+      "description": "Add products to your cart before checkout.",
+      "cta": "View products"
+    },
+    "success": {
+      "kicker": "Order received",
+      "title": "Thank you for your order",
+      "cashDescription": "Your pay-on-door order was created. Our team will contact you to confirm delivery details.",
+      "onlineDescription": "Your payment flow has completed. You will receive confirmation after payment is verified.",
+      "reference": "Reference",
+      "continueShopping": "Continue shopping",
+      "contact": "Contact us"
+    }
+  },
   "analytics": {
     "cookie": {
       "title": "Analytics cookies",

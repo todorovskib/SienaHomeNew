@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useReducer, ReactNode } from 'react';
 import { Product } from '../types';
 
 export interface CartItem {
@@ -27,6 +27,37 @@ const CartContext = createContext<{
   clearCart: () => void;
 } | null>(null);
 
+const CART_STORAGE_KEY = 'siena_cart_items';
+
+const calculateCartState = (items: CartItem[]): CartState => ({
+  items,
+  total: items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+  itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
+});
+
+const getInitialCartState = (): CartState => {
+  if (typeof window === 'undefined') {
+    return { items: [], total: 0, itemCount: 0 };
+  }
+
+  try {
+    const stored = window.localStorage.getItem(CART_STORAGE_KEY);
+    if (!stored) {
+      return { items: [], total: 0, itemCount: 0 };
+    }
+
+    const parsed = JSON.parse(stored) as CartItem[];
+    if (!Array.isArray(parsed)) {
+      return { items: [], total: 0, itemCount: 0 };
+    }
+
+    const items = parsed.filter((item) => item?.product?.id && Number(item.quantity) > 0);
+    return calculateCartState(items);
+  } catch {
+    return { items: [], total: 0, itemCount: 0 };
+  }
+};
+
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_ITEM': {
@@ -45,26 +76,14 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         newItems = [...state.items, action.payload];
       }
 
-      const total = newItems.reduce(
-        (sum, item) => sum + item.product.price * item.quantity,
-        0
-      );
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
-
-      return { items: newItems, total, itemCount };
+      return calculateCartState(newItems);
     }
 
     case 'REMOVE_ITEM': {
       const newItems = state.items.filter(
         item => item.product.id !== action.payload
       );
-      const total = newItems.reduce(
-        (sum, item) => sum + item.product.price * item.quantity,
-        0
-      );
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
-
-      return { items: newItems, total, itemCount };
+      return calculateCartState(newItems);
     }
 
     case 'UPDATE_QUANTITY': {
@@ -74,13 +93,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           : item
       ).filter(item => item.quantity > 0);
 
-      const total = newItems.reduce(
-        (sum, item) => sum + item.product.price * item.quantity,
-        0
-      );
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
-
-      return { items: newItems, total, itemCount };
+      return calculateCartState(newItems);
     }
 
     case 'CLEAR_CART':
@@ -92,27 +105,27 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 };
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(cartReducer, {
-    items: [],
-    total: 0,
-    itemCount: 0,
-  });
+  const [state, dispatch] = useReducer(cartReducer, getInitialCartState());
 
-  const addToCart = (product: Product, quantity: number) => {
+  useEffect(() => {
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
+  }, [state.items]);
+
+  const addToCart = useCallback((product: Product, quantity: number) => {
     dispatch({ type: 'ADD_ITEM', payload: { product, quantity } });
-  };
+  }, []);
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = useCallback((productId: string) => {
     dispatch({ type: 'REMOVE_ITEM', payload: productId });
-  };
+  }, []);
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number) => {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, quantity } });
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     dispatch({ type: 'CLEAR_CART' });
-  };
+  }, []);
 
   return (
     <CartContext.Provider

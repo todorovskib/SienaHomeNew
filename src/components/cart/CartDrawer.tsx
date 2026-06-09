@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X, Plus, Minus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAnalytics } from '../../contexts/AnalyticsContext';
-import { supabase } from '../../lib/supabase';
 import { formatPrice } from '../../utils/price';
 import Button from '../ui/Button';
 
@@ -18,20 +17,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { state, removeFromCart, updateQuantity, clearCart } = useCart();
   const { trackEvent } = useAnalytics();
   const location = useLocation();
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [checkoutError, setCheckoutError] = useState('');
+  const navigate = useNavigate();
 
   const currentLang = location.pathname.split('/')[1] || 'mk';
 
-  const getVisitorId = () => {
-    const match = document.cookie.match(/(?:^|; )siena_visitor_id=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : null;
-  };
-
-  const handleCheckout = async () => {
-    setCheckoutError('');
-    setIsCheckingOut(true);
-
+  const handleCheckout = () => {
     trackEvent('checkout_start', {
       entityType: 'cart',
       eventValue: state.total,
@@ -40,39 +30,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         total: state.total,
       },
     });
-
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-          language: currentLang,
-          visitorId: getVisitorId(),
-          items: state.items.map((item) => ({
-            productId: item.product.id,
-            quantity: item.quantity,
-          })),
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data?.url) {
-        throw new Error(t('cart.checkoutNotConfigured'));
-      }
-
-      window.location.href = data.url;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('cart.checkoutFailed');
-      setCheckoutError(message);
-      trackEvent('checkout_failed', {
-        entityType: 'cart',
-        eventValue: state.total,
-        metadata: { message },
-      });
-    } finally {
-      setIsCheckingOut(false);
-    }
+    onClose();
+    navigate(`/${currentLang}/checkout`);
   };
 
   if (!isOpen) return null;
@@ -194,18 +153,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           {/* Footer */}
           {state.items.length > 0 && (
             <div className="border-t p-4 space-y-4 bg-gradient-to-r from-siena-50 to-accent-50">
-              {checkoutError && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {checkoutError}
-                </div>
-              )}
               <div className="flex items-center justify-between text-base font-semibold text-siena-900">
                 <span>{t('cart.total')}</span>
                 <span>{formatPrice(state.total, i18n.resolvedLanguage)}</span>
               </div>
               <div className="space-y-2">
-                <Button variant="primary" className="w-full" onClick={handleCheckout} disabled={isCheckingOut}>
-                  {isCheckingOut ? t('cart.checkoutLoading') : t('cart.checkout')}
+                <Button variant="primary" className="w-full" onClick={handleCheckout}>
+                  {t('cart.checkout')}
                 </Button>
                 <Button 
                   variant="outline" 

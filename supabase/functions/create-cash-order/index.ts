@@ -24,7 +24,6 @@ interface ProductRow {
   name: string;
   slug: string;
   price: number;
-  main_image_url: string | null;
   in_stock: boolean;
   is_published: boolean;
 }
@@ -64,14 +63,6 @@ const supabaseFetch = async (
   });
 };
 
-const encodeStripeForm = (values: Record<string, string | number>) => {
-  const params = new URLSearchParams();
-  Object.entries(values).forEach(([key, value]) => {
-    params.append(key, String(value));
-  });
-  return params;
-};
-
 const sanitizeText = (value: unknown, maxLength = 500) =>
   typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
 
@@ -85,9 +76,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const stripeSecretKey = getRequiredEnv('STRIPE_SECRET_KEY');
-    const siteUrl = Deno.env.get('SITE_URL') ?? req.headers.get('origin') ?? 'http://localhost:5173';
-    const currency = (Deno.env.get('CHECKOUT_CURRENCY') ?? 'mkd').toLowerCase();
+    const currency = (Deno.env.get('CHECKOUT_CURRENCY') ?? 'mkd').toUpperCase();
     const body = await req.json();
     const items = Array.isArray(body.items) ? body.items as CheckoutItemInput[] : [];
     const language = typeof body.language === 'string' ? body.language : 'mk';
@@ -103,6 +92,10 @@ Deno.serve(async (req) => {
       notes: sanitizeText(customerInput.notes, 800),
     };
 
+    if (!customer.fullName || !customer.phone || !customer.address || !customer.city) {
+      return jsonResponse({ error: 'Missing required delivery information.' }, 400);
+    }
+
     const sanitizedItems = items
       .map((item) => ({
         productId: String(item.productId ?? ''),
@@ -116,7 +109,7 @@ Deno.serve(async (req) => {
 
     const productIds = [...new Set(sanitizedItems.map((item) => item.productId))];
     const productsResponse = await supabaseFetch(
-      `products?select=id,name,slug,price,main_image_url,in_stock,is_published&id=in.(${productIds.join(',')})`,
+      `products?select=id,name,slug,price,in_stock,is_published&id=in.(${productIds.join(',')})`,
     );
 
     if (!productsResponse.ok) {
@@ -145,22 +138,22 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { Prefer: 'return=representation' },
       body: JSON.stringify({
-        provider: 'stripe',
+        provider: 'cash_on_delivery',
         status: 'pending',
-        currency: currency.toUpperCase(),
+        currency,
         amount_total: amountTotal,
         analytics_visitor_id: visitorId,
         customer_email: customer.email || null,
         metadata: {
           language,
           customer,
-          payment_method: 'online_card_wallet',
+          payment_method: 'cash_on_delivery',
         },
       }),
     });
 
     if (!orderResponse.ok) {
-      return jsonResponse({ error: 'Could not create checkout order.' }, 500);
+      return jsonResponse({ error: 'Could not create pay-on-door order.' }, 500);
     }
 
     const [order] = await orderResponse.json();
@@ -181,58 +174,25 @@ Deno.serve(async (req) => {
       ),
     });
 
-    const stripeBody: Record<string, string | number> = {
-      mode: 'payment',
-      success_url: `${siteUrl}/${language}/checkout/success?checkout=success&payment=online&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/${language}/checkout?checkout=cancelled`,
-      'metadata[order_id]': orderId,
-      'metadata[payment_method]': 'online_card_wallet',
-      'phone_number_collection[enabled]': 'true',
-      billing_address_collection: 'auto',
-    };
-
-    if (customer.email) {
-      stripeBody.customer_email = customer.email;
-    }
-
-    checkoutItems.forEach((item, index) => {
-      stripeBody[`line_items[${index}][price_data][currency]`] = currency;
-      stripeBody[`line_items[${index}][price_data][product_data][name]`] = item.product.name;
-      stripeBody[`line_items[${index}][price_data][unit_amount]`] = Math.round(Number(item.product.price) * 100);
-      stripeBody[`line_items[${index}][quantity]`] = item.quantity;
-
-      if (item.product.main_image_url) {
-        stripeBody[`line_items[${index}][price_data][product_data][images][0]`] = item.product.main_image_url;
-      }
-    });
-
-    const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    await supabaseFetch('analytics_events', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${stripeSecretKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: encodeStripeForm(stripeBody),
-    });
-
-    const session = await stripeResponse.json();
-
-    if (!stripeResponse.ok || !session.url) {
-      return jsonResponse({ error: session.error?.message ?? 'Could not create payment session.' }, 500);
-    }
-
-    await supabaseFetch(`checkout_orders?id=eq.${orderId}`, {
-      method: 'PATCH',
       body: JSON.stringify({
-        provider_session_id: session.id,
-        checkout_url: session.url,
-        updated_at: new Date().toISOString(),
+        visitor_id: visitorId || `cash-${orderId}`,
+        event_name: 'pay_on_door_order_created',
+        event_value: amountTotal,
+        entity_type: 'checkout',
+        entity_id: orderId,
+        metadata: {
+          payment_method: 'cash_on_delivery',
+          customer_email: customer.email || null,
+          language,
+        },
       }),
     });
 
-    return jsonResponse({ url: session.url, orderId });
+    return jsonResponse({ orderId, amountTotal, currency });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Checkout failed.';
+    const message = error instanceof Error ? error.message : 'Pay-on-door order failed.';
     return jsonResponse({ error: message }, 500);
   }
 });

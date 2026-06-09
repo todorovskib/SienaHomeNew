@@ -21,6 +21,8 @@ import ServicesPage from './pages/ServicesPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import WarrantyPage from './pages/WarrantyPage';
+import CheckoutPage from './pages/CheckoutPage';
+import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 
@@ -126,6 +128,8 @@ function App() {
                       <Route path={`/${lang}/privacy-policy`} element={<PrivacyPolicyPage />} />
                       <Route path={`/${lang}/terms-of-service`} element={<TermsOfServicePage />} />
                       <Route path={`/${lang}/warranty`} element={<WarrantyPage />} />
+                      <Route path={`/${lang}/checkout`} element={<CheckoutPage />} />
+                      <Route path={`/${lang}/checkout/success`} element={<CheckoutSuccessPage />} />
                       
                       {/* Admin routes */}
                       <Route path={`/${lang}/admin`} element={<Navigate to={`/${lang}/admin/login`} replace />} />
@@ -138,6 +142,8 @@ function App() {
                   <Route path="/admin" element={<Navigate to={`/${DEFAULT_LANGUAGE}/admin/login`} replace />} />
                   <Route path="/admin/login" element={<Navigate to={`/${DEFAULT_LANGUAGE}/admin/login`} replace />} />
                   <Route path="/admin/dashboard" element={<Navigate to={`/${DEFAULT_LANGUAGE}/admin/dashboard`} replace />} />
+                  <Route path="/checkout" element={<Navigate to={`/${DEFAULT_LANGUAGE}/checkout`} replace />} />
+                  <Route path="/checkout/success" element={<Navigate to={`/${DEFAULT_LANGUAGE}/checkout/success`} replace />} />
 
                   {/* Catch all redirect */}
                   <Route path="*" element={<Navigate to={`/${DEFAULT_LANGUAGE}`} replace />} />
