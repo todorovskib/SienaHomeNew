@@ -209,9 +209,9 @@ const TermsOfServicePage: React.FC = () => {
               </p>
               <div className="space-y-2 text-gray-700">
                 <p><strong>Siena Home</strong></p>
-                <p>Email: siena.home@yahoo.com</p>
-                <p>Phone: 076 669 454</p>
-                <p>Address: Factory & Showroom Address</p>
+                <p>{t('contact.info.email')}: siena.home@yahoo.com</p>
+                <p>{t('contact.info.phone')}: 076 669 454</p>
+                <p>{t('footer.factoryAddress')}: {t('contact.locations.factory.address')}</p>
               </div>
             </section>
           </div>

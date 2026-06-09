@@ -234,10 +234,10 @@ const WarrantyPage: React.FC = () => {
                 {t('warranty.sections.contact.content')}
               </p>
               <div className="space-y-2 text-gray-700">
-                <p><strong>Siena Home - Warranty Department</strong></p>
-                <p>Email: siena.home@yahoo.com</p>
-                <p>Phone: 076 669 454</p>
-                <p>Address: Factory & Showroom Address</p>
+                <p><strong>{t('warranty.sections.contact.departmentName')}</strong></p>
+                <p>{t('contact.info.email')}: siena.home@yahoo.com</p>
+                <p>{t('contact.info.phone')}: 076 669 454</p>
+                <p>{t('footer.factoryAddress')}: {t('contact.locations.factory.address')}</p>
                 <p className="text-sm text-gray-600 mt-4">
                   {t('warranty.sections.contact.hours')}
                 </p>

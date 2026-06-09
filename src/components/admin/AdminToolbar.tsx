@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Settings, Edit, X, LogOut, User } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 
 const AdminToolbar: React.FC = () => {
   const { state: adminState, toggleEditMode, logout } = useAdmin();
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1] || 'mk';
@@ -29,7 +31,7 @@ const AdminToolbar: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2">
                 <User className="h-4 w-4" />
-                <h3 className="font-semibold text-sm">Admin Panel</h3>
+                <h3 className="font-semibold text-sm">{t('admin.toolbar.panel')}</h3>
               </div>
               <button
                 onClick={() => setIsExpanded(false)}
@@ -51,7 +53,7 @@ const AdminToolbar: React.FC = () => {
                 }`}
               >
                 <Edit className="h-3 w-3 mr-1" />
-                {adminState.editMode ? 'Exit Edit' : 'Edit Mode'}
+                {adminState.editMode ? t('admin.toolbar.exitEdit') : t('admin.toolbar.editMode')}
               </Button>
               
               <Button
@@ -61,7 +63,7 @@ const AdminToolbar: React.FC = () => {
                 className="w-full text-xs bg-white text-siena-600 border-white hover:bg-gray-100"
               >
                 <Settings className="h-3 w-3 mr-1" />
-                Manage
+                {t('admin.toolbar.manage')}
               </Button>
               
               <Button
@@ -71,7 +73,7 @@ const AdminToolbar: React.FC = () => {
                 className="w-full text-xs bg-red-500 text-white border-red-500 hover:bg-red-600"
               >
                 <LogOut className="h-3 w-3 mr-1" />
-                Logout
+                {t('account.logout')}
               </Button>
             </div>
           </div>
@@ -88,7 +90,7 @@ const AdminToolbar: React.FC = () => {
       {/* Edit Mode Indicator */}
       {adminState.editMode && (
         <div className="absolute -top-12 right-0 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse">
-          Edit Mode Active
+          {t('admin.toolbar.editActive')}
         </div>
       )}
     </div>

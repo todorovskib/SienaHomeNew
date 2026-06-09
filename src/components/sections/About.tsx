@@ -1,52 +1,51 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Container from '../ui/Container';
 import SectionHeading from '../ui/SectionHeading';
 import Button from '../ui/Button';
 
 const About: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <section id="about" className="py-24 bg-white">
       <Container>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="order-2 lg:order-1">
             <SectionHeading
-              title="Our Family Legacy"
-              subtitle="A tradition of excellence in waterproof bathroom furniture since 2005."
+              title={t('about.home.title')}
+              subtitle={t('about.home.subtitle')}
               centered={false}
             />
             
             <p className="text-gray-600 mb-6 leading-relaxed">
-              As a family-owned business, Siena Home combines traditional craftsmanship with modern 
-              innovation. Our factory and showroom are operated by the same family, allowing us to 
-              maintain exceptional quality control and offer truly customized solutions.
+              {t('about.home.content1')}
             </p>
             
             <p className="text-gray-600 mb-6 leading-relaxed">
-              What sets us apart is our unique position as both manufacturers and retailers. This 
-              allows us to offer custom-made solutions and bulk orders directly from our factory, 
-              ensuring the highest quality and most competitive prices for our customers.
+              {t('about.home.content2')}
             </p>
             
             <div className="grid grid-cols-2 gap-6 mb-8">
               <div>
                 <h4 className="text-3xl font-bold text-teal-600 mb-1">100%</h4>
-                <p className="text-gray-700">Waterproof PVC</p>
+                <p className="text-gray-700">{t('about.home.stats.waterproof')}</p>
               </div>
               <div>
-                <h4 className="text-3xl font-bold text-teal-600 mb-1">Custom</h4>
-                <p className="text-gray-700">Made to Measure</p>
+                <h4 className="text-3xl font-bold text-teal-600 mb-1">{t('about.home.stats.custom')}</h4>
+                <p className="text-gray-700">{t('about.home.stats.madeToMeasure')}</p>
               </div>
               <div>
-                <h4 className="text-3xl font-bold text-teal-600 mb-1">Bulk</h4>
-                <p className="text-gray-700">Orders Welcome</p>
+                <h4 className="text-3xl font-bold text-teal-600 mb-1">{t('about.home.stats.bulk')}</h4>
+                <p className="text-gray-700">{t('about.home.stats.orders')}</p>
               </div>
               <div>
-                <h4 className="text-3xl font-bold text-teal-600 mb-1">Family</h4>
-                <p className="text-gray-700">Owned & Operated</p>
+                <h4 className="text-3xl font-bold text-teal-600 mb-1">{t('about.home.stats.family')}</h4>
+                <p className="text-gray-700">{t('about.home.stats.owned')}</p>
               </div>
             </div>
             
-            <Button variant="primary">Visit Our Factory</Button>
+            <Button variant="primary">{t('about.home.cta')}</Button>
           </div>
           
           <div className="order-1 lg:order-2 grid grid-cols-2 gap-4">

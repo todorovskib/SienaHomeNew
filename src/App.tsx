@@ -39,6 +39,45 @@ const ScrollToTop: React.FC = () => {
   return null;
 };
 
+const setMetaContent = (selector: string, content: string) => {
+  const element = document.querySelector(selector);
+  if (element) {
+    element.setAttribute('content', content);
+  }
+};
+
+const SeoMetadata: React.FC = () => {
+  const location = useLocation();
+  const lang = location.pathname.split('/')[1] === 'en' ? 'en' : 'mk';
+
+  useEffect(() => {
+    const isEnglish = lang === 'en';
+    const title = isEnglish
+      ? 'Siena Home - Waterproof PVC Bathroom Furniture'
+      : 'Siena Home - Водоотпорен PVC мебел за бања';
+    const description = isEnglish
+      ? 'Custom waterproof PVC bathroom furniture, modern designs, delivery, and practical made-to-measure solutions.'
+      : '100% водоотпорен PVC мебел за бања по мерка, модерни дизајни и практични решенија за вашиот дом.';
+    const url = `https://sienahome.vercel.app${location.pathname}`;
+
+    document.documentElement.lang = lang;
+    document.title = title;
+    setMetaContent('meta[name="description"]', description);
+    setMetaContent('meta[property="og:url"]', url);
+    setMetaContent('meta[property="og:title"]', title);
+    setMetaContent('meta[property="og:description"]', description);
+    setMetaContent('meta[name="twitter:title"]', title);
+    setMetaContent('meta[name="twitter:description"]', description);
+
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      canonical.setAttribute('href', url);
+    }
+  }, [lang, location.pathname]);
+
+  return null;
+};
+
 // Component to handle language initialization
 const LanguageInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { i18n } = useTranslation();
@@ -106,6 +145,7 @@ function App() {
     <AuthProvider>
       <Router>
         <ScrollToTop />
+        <SeoMetadata />
         <LanguageInitializer>
           <AppProviders>
             <div className="min-h-screen bg-white">

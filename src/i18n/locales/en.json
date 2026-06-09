@@ -55,6 +55,22 @@
       "content1": "Welcome to Siena Home, where expertise meets innovation in the realm of 100% waterproof bathroom furniture. With more than two decades of dedicated experience, first as a plywood and chipboard bathroom furniture factory to revolutionary moisture, splash and water resistant bathroom furniture!",
       "content2": "In the last year, we have invested in the most modern machines and materials, which means that we use the most modern technique. Our wide portfolio boasts a diverse range of products tailored to suit every taste and requirement."
     },
+    "home": {
+      "title": "Our Family Legacy",
+      "subtitle": "A tradition of excellence in waterproof bathroom furniture since 2005.",
+      "content1": "As a family-owned business, Siena Home combines traditional craftsmanship with modern innovation. Our factory and showroom are operated by the same family, allowing us to maintain exceptional quality control and offer truly customized solutions.",
+      "content2": "What sets us apart is our unique position as both manufacturers and retailers. This allows us to offer custom-made solutions and bulk orders directly from our factory, ensuring the highest quality and most competitive prices for our customers.",
+      "stats": {
+        "waterproof": "Waterproof PVC",
+        "custom": "Custom",
+        "madeToMeasure": "Made to Measure",
+        "bulk": "Bulk",
+        "orders": "Orders Welcome",
+        "family": "Family",
+        "owned": "Owned & Operated"
+      },
+      "cta": "Visit Our Factory"
+    },
     "timeline": "Our Journey",
     "milestones": {
       "founding": "Company Founded",
@@ -471,6 +487,23 @@
     "haveAccount": "Already have an account? Login here"
   },
   "admin": {
+    "login": {
+      "title": "Admin Login",
+      "subtitle": "Sign in with your Supabase admin account",
+      "email": "Email",
+      "emailPlaceholder": "Enter admin email",
+      "passwordPlaceholder": "Enter admin password",
+      "loading": "Logging in...",
+      "error": "Invalid credentials or account does not have admin role.",
+      "failed": "Login failed. Please try again."
+    },
+    "toolbar": {
+      "panel": "Admin Panel",
+      "editMode": "Edit Mode",
+      "exitEdit": "Exit Edit",
+      "manage": "Manage",
+      "editActive": "Edit Mode Active"
+    },
     "dashboard": {
       "title": "Admin Dashboard",
       "subtitle": "Manage products and pricing",
@@ -873,6 +906,7 @@
       },
       "contact": {
         "title": "Warranty Support",
+        "departmentName": "Siena Home - Warranty Department",
         "content": "For warranty claims or questions about coverage, contact our dedicated warranty team:",
         "hours": "Warranty support available Monday-Friday, 9:00 AM - 5:00 PM"
       }
