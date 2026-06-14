@@ -92,11 +92,15 @@ server-side variables for Production, Preview, and Development:
 
 ```env
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_SECRET_KEY=your_sb_secret_key
 ```
 
-Never prefix the service-role key with `VITE_`. Vite-prefixed variables are
-included in the browser bundle. Redeploy after adding or changing Vercel
+Create or copy a backend secret from **Supabase > Project Settings > API Keys >
+Secret keys**. The legacy `SUPABASE_SERVICE_ROLE_KEY` variable is also supported
+if the project still uses legacy keys.
+
+Never prefix a secret or service-role key with `VITE_`. Vite-prefixed variables
+are included in the browser bundle. Redeploy after adding or changing Vercel
 environment variables.
 
 The API validates every submission, checks a honeypot field, and uses the

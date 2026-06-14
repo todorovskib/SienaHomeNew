@@ -154,24 +154,31 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const environment = getEnvironment();
     const supabaseUrl = environment.SUPABASE_URL ?? environment.VITE_SUPABASE_URL;
-    const serviceRoleKey = environment.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseSecretKey = environment.SUPABASE_SECRET_KEY
+      ?? environment.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl || !supabaseSecretKey) {
       console.error('Contact API is missing Supabase server environment variables.');
       sendError(res, 500, 'The contact service is temporarily unavailable.');
       return;
+    }
+
+    const supabaseHeaders: Record<string, string> = {
+      apikey: supabaseSecretKey,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    };
+
+    // Legacy service_role keys are JWTs; new sb_secret keys use apikey only.
+    if (!supabaseSecretKey.startsWith('sb_secret_')) {
+      supabaseHeaders.Authorization = `Bearer ${supabaseSecretKey}`;
     }
 
     const supabaseResponse = await fetch(
       `${supabaseUrl.replace(/\/$/, '')}/rest/v1/contact_messages`,
       {
         method: 'POST',
-        headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-          'Content-Type': 'application/json',
-          Prefer: 'return=minimal',
-        },
+        headers: supabaseHeaders,
         body: JSON.stringify({
           name,
           phone: phone || null,
