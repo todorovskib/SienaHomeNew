@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Send, MapPin, Phone, Mail, Clock, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Container from '../ui/Container';

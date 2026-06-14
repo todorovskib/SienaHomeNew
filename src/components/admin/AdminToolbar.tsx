@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
 import { Settings, Edit, X, LogOut, User } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
+import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 
 const AdminToolbar: React.FC = () => {
-  const { state: adminState, toggleEditMode, logout } = useAdmin();
+  const { editMode, toggleEditMode } = useAdmin();
+  const { isAdmin, signOut } = useAuth();
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1] || 'mk';
 
   // Only show toolbar if admin is authenticated
-  if (!adminState.isAuthenticated) return null;
+  if (!isAdmin) return null;
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     setIsExpanded(false);
   };
 
@@ -43,17 +45,17 @@ const AdminToolbar: React.FC = () => {
             
             <div className="space-y-2">
               <Button
-                variant={adminState.editMode ? "primary" : "outline"}
+                variant={editMode ? "primary" : "outline"}
                 size="sm"
                 onClick={toggleEditMode}
                 className={`w-full text-xs ${
-                  adminState.editMode 
+                  editMode
                     ? 'bg-green-500 hover:bg-green-600 border-green-500' 
                     : 'bg-white text-siena-600 border-white hover:bg-gray-100'
                 }`}
               >
                 <Edit className="h-3 w-3 mr-1" />
-                {adminState.editMode ? t('admin.toolbar.exitEdit') : t('admin.toolbar.editMode')}
+                {editMode ? t('admin.toolbar.exitEdit') : t('admin.toolbar.editMode')}
               </Button>
               
               <Button
@@ -88,7 +90,7 @@ const AdminToolbar: React.FC = () => {
       </div>
 
       {/* Edit Mode Indicator */}
-      {adminState.editMode && (
+      {editMode && (
         <div className="absolute -top-12 right-0 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse">
           {t('admin.toolbar.editActive')}
         </div>

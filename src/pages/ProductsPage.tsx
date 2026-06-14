@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Search, Filter } from 'lucide-react';
@@ -41,12 +41,12 @@ const ProductsPage: React.FC = () => {
   const allDimensions = [...new Set(products.map(p => `${p.dimensions.width} CM`))];
 
   // Helper function to get translated text
-  const getTranslatedText = (text: string) => {
+  const getTranslatedText = useCallback((text: string) => {
     if (text.startsWith('products.')) {
       return t(text);
     }
     return text;
-  };
+  }, [t]);
 
   const filteredProducts = useMemo(
     () => products.filter(product => {
@@ -83,7 +83,7 @@ const ProductsPage: React.FC = () => {
       
       return true;
     }),
-    [filters.category, filters.dimensions, filters.inStock, filters.materials, products, searchQuery, t],
+    [filters.category, filters.dimensions, filters.inStock, filters.materials, getTranslatedText, products, searchQuery],
   );
 
   const filteredProductIds = useMemo(

@@ -23,8 +23,8 @@ const EditableText: React.FC<EditableTextProps> = ({
   placeholder = 'Enter text...',
 }) => {
   const { getContent, updateContent } = useContent();
-  const { user, profile, isAdmin, loading } = useAuth();
-  const { state: adminState } = useAdmin();
+  const { isAdmin, loading } = useAuth();
+  const { editMode } = useAdmin();
   const { i18n } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -97,7 +97,7 @@ const EditableText: React.FC<EditableTextProps> = ({
   const displayValue = currentContent || placeholder;
 
   // Only show edit controls if admin and edit mode is enabled
-  const showEditControls = isAdmin && adminState.editMode;
+  const showEditControls = isAdmin && editMode;
 
   if (loading) {
     return <span className={className}>{displayValue}</span>;

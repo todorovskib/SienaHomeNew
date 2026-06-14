@@ -16,7 +16,7 @@ interface AccountDrawerProps {
 const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFavorites }) => {
   const { t } = useTranslation();
   const { user, profile, isAdmin, signIn, signOut, signUp } = useAuth();
-  const { state: adminState, logout: adminLogout, toggleEditMode } = useAdmin();
+  const { editMode, toggleEditMode } = useAdmin();
   const { state: favoritesState } = useFavorites();
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,9 +47,7 @@ const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFa
   };
 
   const handleLogout = async () => {
-    if (adminState.isAuthenticated) {
-      await adminLogout();
-    } else if (user) {
+    if (user) {
       await signOut();
     }
     onClose();
@@ -58,7 +56,7 @@ const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFa
   if (!isOpen) return null;
 
   // Check if anyone is logged in (admin or regular user)
-  const isLoggedIn = adminState.isAuthenticated || !!user;
+  const isLoggedIn = !!user;
 
   return (
     <>
@@ -89,7 +87,7 @@ const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFa
             {isLoggedIn ? (
               /* Logged In View */
               <div className="space-y-6">
-                {adminState.isAuthenticated ? (
+                {isAdmin ? (
                   /* Admin User View */
                   <div className="space-y-6">
                     {/* Admin Profile */}
@@ -121,15 +119,15 @@ const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose, onOpenFa
                         <button
                           onClick={toggleEditMode}
                           className={`w-full flex items-center justify-center space-x-2 p-2 rounded text-sm font-medium transition-colors duration-200 ${
-                            adminState.editMode
+                            editMode
                               ? 'bg-green-500 text-white hover:bg-green-600'
                               : 'bg-blue-500 text-white hover:bg-blue-600'
                           }`}
                         >
                           <Settings className="h-4 w-4" />
-                          <span>{adminState.editMode ? 'Exit Edit Mode' : 'Enable Edit Mode'}</span>
+                          <span>{editMode ? 'Exit Edit Mode' : 'Enable Edit Mode'}</span>
                         </button>
-                        {adminState.editMode && (
+                        {editMode && (
                           <div className="text-xs text-blue-600 text-center">
                             Edit mode active - hover over content to edit
                           </div>

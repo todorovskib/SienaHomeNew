@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BarChart3, Download, Edit, Eye, EyeOff, LogOut, Package, Plus, Save, Trash2, X } from 'lucide-react';
-import { useAdmin } from '../contexts/AdminContext';
+import { useAuth } from '../contexts/SupabaseAuthContext';
 import { useProducts } from '../contexts/ProductContext';
 import { supabase } from '../lib/supabase';
 import { Color, DimensionOption, Product } from '../types';
@@ -247,7 +247,7 @@ const productToForm = (product: Product): ProductFormState => {
 
 const AdminDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { state: adminState, logout } = useAdmin();
+  const { isAdmin, signOut } = useAuth();
   const { products, loading, saving, error, createProduct, updateProduct, deleteProduct } = useProducts();
   const navigate = useNavigate();
   const location = useLocation();
@@ -263,13 +263,7 @@ const AdminDashboardPage: React.FC = () => {
   const isEdit = Boolean(formState.id);
 
   useEffect(() => {
-    if (!adminState.loading && !adminState.isAuthenticated) {
-      navigate(`/${currentLang}/admin/login`);
-    }
-  }, [adminState.loading, adminState.isAuthenticated, navigate, currentLang]);
-
-  useEffect(() => {
-    if (!adminState.isAuthenticated) {
+    if (!isAdmin) {
       return;
     }
 
@@ -294,7 +288,7 @@ const AdminDashboardPage: React.FC = () => {
     };
 
     void loadAnalytics();
-  }, [adminState.isAuthenticated, analyticsRangeDays]);
+  }, [isAdmin, analyticsRangeDays]);
 
   const filteredProducts = useMemo(() => {
     const query = searchTerm.toLowerCase().trim();
@@ -380,7 +374,7 @@ const AdminDashboardPage: React.FC = () => {
   }, [analyticsEvents]);
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate(`/${currentLang}`);
   };
 
@@ -508,11 +502,7 @@ const AdminDashboardPage: React.FC = () => {
   const maxFunnelValue = Math.max(1, ...funnelSteps.map((step) => step.value));
   const maxDailyActivity = Math.max(1, ...analyticsSummary.dailyActivity.map((item) => item.count));
 
-  if (adminState.loading) {
-    return null;
-  }
-
-  if (!adminState.isAuthenticated) {
+  if (!isAdmin) {
     return null;
   }
 

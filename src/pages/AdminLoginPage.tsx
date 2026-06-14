@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Shield, Eye, EyeOff } from 'lucide-react';
-import { useAdmin } from '../contexts/AdminContext';
+import { useAuth } from '../contexts/SupabaseAuthContext';
 import Container from '../components/ui/Container';
 import Button from '../components/ui/Button';
 
@@ -12,17 +12,21 @@ const AdminLoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { state: adminState, login } = useAdmin();
+  const { isAdmin, loading, signIn, signOut } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const currentLang = location.pathname.split('/')[1] || 'mk';
+  const requestedPath = (location.state as { from?: string } | null)?.from;
+  const dashboardPath = requestedPath?.startsWith(`/${currentLang}/admin/dashboard`)
+    ? requestedPath
+    : `/${currentLang}/admin/dashboard`;
 
   useEffect(() => {
-    if (adminState.isAuthenticated) {
-      navigate(`/${currentLang}/admin/dashboard`);
+    if (!loading && isAdmin) {
+      navigate(dashboardPath, { replace: true });
     }
-  }, [adminState.isAuthenticated, navigate, currentLang]);
+  }, [dashboardPath, isAdmin, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,12 +34,19 @@ const AdminLoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(credentials.email, credentials.password);
-      if (success) {
-        navigate(`/${currentLang}/admin/dashboard`);
-      } else {
+      const result = await signIn(credentials.email, credentials.password);
+      if (result.error) {
         setError(t('admin.login.error'));
+        return;
       }
+
+      if (result.profile?.role !== 'admin') {
+        await signOut();
+        setError(t('admin.login.error'));
+        return;
+      }
+
+      navigate(dashboardPath, { replace: true });
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : t('admin.login.failed'));
     } finally {
@@ -81,6 +92,7 @@ const AdminLoginPage: React.FC = () => {
                   onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('admin.login.emailPlaceholder')}
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -97,6 +109,7 @@ const AdminLoginPage: React.FC = () => {
                     onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                     className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent transition-colors duration-200"
                     placeholder={t('admin.login.passwordPlaceholder')}
+                    autoComplete="current-password"
                     required
                   />
                   <button

@@ -25,6 +25,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 
 const DEFAULT_LANGUAGE = 'mk';
 const SUPPORTED_LANGUAGES = ['mk', 'en'] as const;
@@ -174,7 +175,14 @@ function App() {
                       {/* Admin routes */}
                       <Route path={`/${lang}/admin`} element={<Navigate to={`/${lang}/admin/login`} replace />} />
                       <Route path={`/${lang}/admin/login`} element={<AdminLoginPage />} />
-                      <Route path={`/${lang}/admin/dashboard`} element={<AdminDashboardPage />} />
+                      <Route
+                        path={`/${lang}/admin/dashboard`}
+                        element={(
+                          <ProtectedAdminRoute>
+                            <AdminDashboardPage />
+                          </ProtectedAdminRoute>
+                        )}
+                      />
                     </React.Fragment>
                   ))}
 

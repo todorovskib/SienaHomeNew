@@ -171,23 +171,4 @@ ON CONFLICT (slug) DO UPDATE SET
   sort_order = EXCLUDED.sort_order,
   updated_at = now();
 
--- Create admin profile if admin user exists in auth.users
-DO $$
-BEGIN
-  -- Check if admin user exists and create profile
-  IF EXISTS (
-    SELECT 1 FROM auth.users WHERE email = 'admin@sienahome.com'
-  ) THEN
-    INSERT INTO profiles (user_id, email, full_name, role)
-    SELECT 
-      id,
-      'admin@sienahome.com',
-      'Admin User',
-      'admin'
-    FROM auth.users 
-    WHERE email = 'admin@sienahome.com'
-    ON CONFLICT (email) DO UPDATE SET
-      role = 'admin',
-      updated_at = now();
-  END IF;
-END $$;
+-- Admin roles are assigned manually in Supabase after the auth user exists.

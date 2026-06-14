@@ -1,14 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Container from '../ui/Container';
 
+interface GalleryImage {
+  id: string;
+  title: string;
+  category: string;
+  imageUrl: string;
+}
+
 const Gallery: React.FC = () => {
   const { t } = useTranslation();
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [currentImage, setCurrentImage] = useState<any>(null);
+  const [currentImage, setCurrentImage] = useState<GalleryImage | null>(null);
 
-  const galleryImages = [
+  const galleryImages: GalleryImage[] = [
     {
       id: '1',
       title: t('gallery.items.modern_master.title'),
@@ -47,7 +54,7 @@ const Gallery: React.FC = () => {
     },
   ];
 
-  const openLightbox = (image: any) => {
+  const openLightbox = (image: GalleryImage) => {
     setCurrentImage(image);
     setLightboxOpen(true);
     document.body.style.overflow = 'hidden';

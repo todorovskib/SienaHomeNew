@@ -500,8 +500,8 @@
       "title": "Admin Login",
       "subtitle": "Sign in with your Supabase admin account",
       "email": "Email",
-      "emailPlaceholder": "Enter admin email",
-      "passwordPlaceholder": "Enter admin password",
+      "emailPlaceholder": "Email address",
+      "passwordPlaceholder": "Password",
       "loading": "Logging in...",
       "error": "Invalid credentials or account does not have admin role.",
       "failed": "Login failed. Please try again."

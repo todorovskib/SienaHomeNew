@@ -48,19 +48,31 @@ Run them in filename order in the Supabase SQL Editor, or use Supabase CLI with 
 Important migration for admin CRUD security:
 
 - `supabase/migrations/20260305170000_admin_product_management_hardening.sql`
+- `supabase/migrations/20260614133000_harden_profile_role_access.sql`
 - `supabase/migrations/20260608123000_commerce_analytics_checkout.sql`
 - `supabase/migrations/20260608124500_advanced_analytics.sql`
 
 ## Admin Login Setup
 
 1. In Supabase Dashboard, create a user in **Authentication > Users**.
-2. In **Table Editor > profiles**, set that user `role` to `admin`.
+2. In the SQL Editor, assign the existing auth user the admin role using a trusted server-side query. Do not put the email or password in frontend code:
+
+```sql
+update public.profiles
+set role = 'admin', updated_at = now()
+where user_id = (
+  select id
+  from auth.users
+  where email = 'THE_ADMIN_EMAIL'
+);
+```
+
 3. Open the app and go to:
    - `http://localhost:5173/mk/admin/login` or
    - `http://localhost:5173/en/admin/login`
 4. Sign in with that admin account.
 
-After login, admin users can create, update, and delete products directly from the admin dashboard.
+The dashboard routes are protected by the authenticated Supabase session and require `profiles.role = 'admin'`. Product mutations are also protected by Supabase Row Level Security.
 
 ## Commerce, Analytics, and Checkout
 
