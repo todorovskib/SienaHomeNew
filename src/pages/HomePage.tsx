@@ -13,8 +13,8 @@ const HomePage: React.FC = () => {
       transition={{ duration: 0.5 }}
     >
       <Hero />
-      <Features />
       <ProductShowcase />
+      <Features />
       <Newsletter />
     </motion.div>
   );

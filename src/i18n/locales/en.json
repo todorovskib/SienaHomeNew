@@ -12,11 +12,20 @@
     "admin": "Admin"
   },
   "hero": {
-    "title": "Family-Crafted Waterproof Bathroom Furniture",
-    "subtitle": "A family-owned factory specializing in 100% waterproof PVC bathroom furniture. Custom designs, bulk orders, and made-to-measure solutions available.",
+    "eyebrow": "Made in North Macedonia",
+    "title": "Waterproof bathroom furniture, made for your space.",
+    "subtitle": "Durable PVC furniture in your preferred color and dimensions, made by our family-run factory.",
+    "imageAlt": "Modern bathroom with Siena Home furniture",
+    "trustLabel": "Why customers choose Siena Home",
     "buttons": {
-      "custom": "Custom Orders",
-      "catalog": "View Catalog"
+      "products": "View products",
+      "contact": "Contact us"
+    },
+    "trust": {
+      "waterproof": "Waterproof PVC",
+      "custom": "Custom dimensions",
+      "delivery": "Delivery",
+      "warranty": "Warranty"
     }
   },
   "features": {
