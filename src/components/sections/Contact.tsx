@@ -1,11 +1,121 @@
-import React from 'react';
-import { Send, MapPin, Phone, Mail, Clock, ExternalLink } from 'lucide-react';
+import React, { ChangeEvent, FormEvent, useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Loader2,
+  Mail,
+  MapPin,
+  Phone,
+  Send,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Container from '../ui/Container';
 import Button from '../ui/Button';
 
+type ContactMethod = 'phone' | 'email' | 'whatsapp';
+type FormStatus = 'idle' | 'submitting' | 'success' | 'error';
+
+interface ContactFormState {
+  name: string;
+  phone: string;
+  email: string;
+  subject: string;
+  message: string;
+  preferredContactMethod: ContactMethod;
+  website: string;
+}
+
+type ContactFormErrors = Partial<Record<keyof ContactFormState | 'contact', string>>;
+
+const initialFormState: ContactFormState = {
+  name: '',
+  phone: '',
+  email: '',
+  subject: '',
+  message: '',
+  preferredContactMethod: 'phone',
+  website: '',
+};
+
 const Contact: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [formData, setFormData] = useState<ContactFormState>(initialFormState);
+  const [errors, setErrors] = useState<ContactFormErrors>({});
+  const [formStatus, setFormStatus] = useState<FormStatus>('idle');
+
+  const validateForm = () => {
+    const nextErrors: ContactFormErrors = {};
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phonePattern = /^[+\d][\d\s()./-]{5,24}$/;
+
+    if (!formData.name.trim()) {
+      nextErrors.name = t('contact.form.validation.name');
+    }
+    if (!formData.phone.trim() && !formData.email.trim()) {
+      nextErrors.contact = t('contact.form.validation.contact');
+    }
+    if (formData.phone.trim() && !phonePattern.test(formData.phone.trim())) {
+      nextErrors.phone = t('contact.form.validation.phone');
+    }
+    if (formData.email.trim() && !emailPattern.test(formData.email.trim())) {
+      nextErrors.email = t('contact.form.validation.email');
+    }
+    if (!formData.message.trim()) {
+      nextErrors.message = t('contact.form.validation.message');
+    }
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({ ...current, [name]: value }));
+    setErrors((current) => ({
+      ...current,
+      [name]: undefined,
+      contact: name === 'phone' || name === 'email' ? undefined : current.contact,
+    }));
+    if (formStatus !== 'idle') {
+      setFormStatus('idle');
+    }
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!validateForm()) {
+      setFormStatus('error');
+      return;
+    }
+
+    setFormStatus('submitting');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          language: i18n.resolvedLanguage === 'en' ? 'en' : 'mk',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Contact submission failed with status ${response.status}`);
+      }
+
+      setFormData(initialFormState);
+      setErrors({});
+      setFormStatus('success');
+    } catch (error) {
+      console.error('Contact form submission failed:', error);
+      setFormStatus('error');
+    }
+  };
 
   const locations = [
     {
@@ -52,59 +162,198 @@ const Contact: React.FC = () => {
               {t('contact.form.send')}
             </h3>
             
-            <form className="space-y-4 md:space-y-6">
+            <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit} noValidate>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('contact.form.name')}
+                  <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('contact.form.name')} <span aria-hidden="true" className="text-red-600">*</span>
                   </label>
                   <input
                     type="text"
-                    id="name"
-                    className="w-full px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200"
+                    id="contact-name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    autoComplete="name"
+                    required
+                    aria-invalid={Boolean(errors.name)}
+                    aria-describedby={errors.name ? 'contact-name-error' : undefined}
+                    className={`w-full px-3 py-2 md:px-4 md:py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200 ${
+                      errors.name ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder={t('contact.form.placeholder.name')}
                   />
+                  {errors.name && (
+                    <p id="contact-name-error" className="mt-1 text-sm text-red-700">
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('contact.form.phone')}
+                  </label>
+                  <input
+                    type="tel"
+                    id="contact-phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    inputMode="tel"
+                    autoComplete="tel"
+                    aria-invalid={Boolean(errors.phone || errors.contact)}
+                    aria-describedby={`contact-phone-help${
+                      errors.phone || errors.contact ? ' contact-phone-error' : ''
+                    }`}
+                    className={`w-full px-3 py-2 md:px-4 md:py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200 ${
+                      errors.phone || errors.contact ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder={t('contact.form.placeholder.phone')}
+                  />
+                  <p id="contact-phone-help" className="mt-1 text-xs text-gray-500">
+                    {t('contact.form.phoneEncouragement')}
+                  </p>
+                  {(errors.phone || errors.contact) && (
+                    <p id="contact-phone-error" className="mt-1 text-sm text-red-700">
+                      {errors.phone || errors.contact}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <div>
+                  <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">
                     {t('contact.form.email')}
                   </label>
                   <input
                     type="email"
-                    id="email"
-                    className="w-full px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200"
+                    id="contact-email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    autoComplete="email"
+                    aria-invalid={Boolean(errors.email || errors.contact)}
+                    aria-describedby={errors.email || errors.contact ? 'contact-email-error' : undefined}
+                    className={`w-full px-3 py-2 md:px-4 md:py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200 ${
+                      errors.email || errors.contact ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder={t('contact.form.placeholder.email')}
                   />
+                  {(errors.email || errors.contact) && (
+                    <p id="contact-email-error" className="mt-1 text-sm text-red-700">
+                      {errors.email || errors.contact}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('contact.form.preferredMethod')}
+                  </label>
+                  <select
+                    id="contact-method"
+                    name="preferredContactMethod"
+                    value={formData.preferredContactMethod}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200"
+                  >
+                    <option value="phone">{t('contact.form.methods.phone')}</option>
+                    <option value="whatsapp">{t('contact.form.methods.whatsapp')}</option>
+                    <option value="email">{t('contact.form.methods.email')}</option>
+                  </select>
                 </div>
               </div>
-              
+
               <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="contact-subject" className="block text-sm font-medium text-gray-700 mb-1">
                   {t('contact.form.subject')}
                 </label>
                 <input
                   type="text"
-                  id="subject"
+                  id="contact-subject"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
                   className="w-full px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200"
                   placeholder={t('contact.form.placeholder.subject')}
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('contact.form.message')}
+                <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('contact.form.message')} <span aria-hidden="true" className="text-red-600">*</span>
                 </label>
                 <textarea
-                  id="message"
-                  rows={4}
-                  className="w-full px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200"
+                  id="contact-message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  rows={5}
+                  required
+                  aria-invalid={Boolean(errors.message)}
+                  aria-describedby={errors.message ? 'contact-message-error' : undefined}
+                  className={`w-full px-3 py-2 md:px-4 md:py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-siena-500 focus:border-transparent text-sm md:text-base transition-colors duration-200 resize-y ${
+                    errors.message ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder={t('contact.form.placeholder.message')}
                 />
+                {errors.message && (
+                  <p id="contact-message-error" className="mt-1 text-sm text-red-700">
+                    {errors.message}
+                  </p>
+                )}
               </div>
-              
-              <Button variant="primary" className="w-full">
-                {t('contact.form.send')}
-                <Send className="ml-2 h-4 w-4" />
+
+              <div
+                aria-hidden="true"
+                className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden"
+              >
+                <label htmlFor="contact-website">Website</label>
+                <input
+                  type="text"
+                  id="contact-website"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleChange}
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
+
+              {formStatus === 'success' && (
+                <div
+                  role="status"
+                  className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800"
+                >
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                  <span>{t('contact.form.status.success')}</span>
+                </div>
+              )}
+
+              {formStatus === 'error' && Object.keys(errors).length === 0 && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                >
+                  <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                  <span>{t('contact.form.status.error')}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full min-h-11"
+                disabled={formStatus === 'submitting'}
+              >
+                {formStatus === 'submitting'
+                  ? t('contact.form.status.sending')
+                  : t('contact.form.send')}
+                {formStatus === 'submitting' ? (
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Send className="ml-2 h-4 w-4" aria-hidden="true" />
+                )}
               </Button>
             </form>
           </div>

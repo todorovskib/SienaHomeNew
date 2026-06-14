@@ -107,12 +107,33 @@
     "subtitle": "Have questions about our products or want to schedule a consultation? Reach out to us.",
     "form": {
       "name": "Name",
+      "phone": "Phone number",
       "email": "Email",
+      "preferredMethod": "How should we contact you?",
+      "phoneEncouragement": "A phone number helps our local team respond faster.",
       "subject": "Subject",
       "message": "Message",
       "send": "Send Message",
+      "methods": {
+        "phone": "Phone call",
+        "whatsapp": "WhatsApp",
+        "email": "Email"
+      },
+      "status": {
+        "sending": "Sending...",
+        "success": "Thank you. Your message has been sent and our team will contact you soon.",
+        "error": "We could not send your message. Please try again or call us directly."
+      },
+      "validation": {
+        "name": "Please enter your name.",
+        "contact": "Please enter a phone number or email address.",
+        "phone": "Please enter a valid phone number.",
+        "email": "Please enter a valid email address.",
+        "message": "Please enter your message."
+      },
       "placeholder": {
         "name": "Your name",
+        "phone": "e.g. 076 123 456",
         "email": "Your email",
         "subject": "How can we help?",
         "message": "Your message..."

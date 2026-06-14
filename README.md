@@ -49,6 +49,8 @@ Important migration for admin CRUD security:
 
 - `supabase/migrations/20260305170000_admin_product_management_hardening.sql`
 - `supabase/migrations/20260614133000_harden_profile_role_access.sql`
+- `supabase/migrations/20260614143000_catalog_content_rls.sql`
+- `supabase/migrations/20260614150000_contact_messages.sql`
 - `supabase/migrations/20260608123000_commerce_analytics_checkout.sql`
 - `supabase/migrations/20260608124500_advanced_analytics.sql`
 
@@ -73,6 +75,34 @@ where user_id = (
 4. Sign in with that admin account.
 
 The dashboard routes are protected by the authenticated Supabase session and require `profiles.role = 'admin'`. Product mutations are also protected by Supabase Row Level Security.
+
+## Contact Form
+
+The contact page submits to the Vercel serverless route at `api/contact.ts`.
+Messages are stored in `public.contact_messages`.
+
+1. Run this migration in the Supabase SQL Editor:
+
+```text
+supabase/migrations/20260614150000_contact_messages.sql
+```
+
+2. In **Vercel > Project Settings > Environment Variables**, add these
+server-side variables for Production, Preview, and Development:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+Never prefix the service-role key with `VITE_`. Vite-prefixed variables are
+included in the browser bundle. Redeploy after adding or changing Vercel
+environment variables.
+
+The API validates every submission, checks a honeypot field, and uses the
+service role only inside the serverless function. Browser users have no direct
+read or insert access to `contact_messages`; authenticated admins can review,
+update, or delete messages through Supabase.
 
 ## Commerce, Analytics, and Checkout
 
