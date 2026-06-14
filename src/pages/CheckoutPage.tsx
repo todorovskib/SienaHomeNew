@@ -48,10 +48,19 @@ const CheckoutPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const getColorLabel = (name: string) => {
+    const key = name.toLowerCase();
+    if (['black', 'white', 'gray', 'red'].includes(key)) {
+      return t(`products.colors.${key}`);
+    }
+    return name;
+  };
+
   const checkoutItems = useMemo(
     () => state.items.map((item) => ({
       productId: item.product.id,
       quantity: item.quantity,
+      selectedOptions: item.selectedOptions,
     })),
     [state.items],
   );
@@ -304,11 +313,21 @@ const CheckoutPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-950">{t('checkout.summary.title')}</h2>
               <div className="mt-4 space-y-4">
                 {state.items.map((item) => (
-                  <div key={item.product.id} className="flex gap-3">
+                  <div key={item.id} className="flex gap-3">
                     <img src={item.product.imageUrl} alt={item.product.name} className="h-16 w-16 rounded-lg object-cover" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-gray-950">{item.product.name}</p>
                       <p className="text-sm text-gray-500">{t('products.quantity')}: {item.quantity}</p>
+                      {item.selectedOptions?.color && (
+                        <p className="text-sm text-gray-500">
+                          {t('products.color')}: {getColorLabel(item.selectedOptions.color.name)}
+                        </p>
+                      )}
+                      {item.selectedOptions?.dimensionOption && (
+                        <p className="text-sm text-gray-500">
+                          {t('products.dimensions.title')}: {item.selectedOptions.dimensionOption.width} x {item.selectedOptions.dimensionOption.height} cm
+                        </p>
+                      )}
                     </div>
                     <p className="font-semibold text-gray-950">{formatPrice(item.product.price * item.quantity, i18n.resolvedLanguage)}</p>
                   </div>

@@ -5,8 +5,13 @@ import { BarChart3, Download, Edit, Eye, EyeOff, LogOut, Package, Plus, Save, Tr
 import { useAdmin } from '../contexts/AdminContext';
 import { useProducts } from '../contexts/ProductContext';
 import { supabase } from '../lib/supabase';
-import { Color, Product } from '../types';
+import { Color, DimensionOption, Product } from '../types';
 import { formatPrice } from '../utils/price';
+import {
+  buildDefaultDimensionOptions,
+  DEFAULT_PRODUCT_COLORS,
+  normalizeDimensionOptionId,
+} from '../utils/productOptions';
 import Container from '../components/ui/Container';
 import Button from '../components/ui/Button';
 
@@ -26,6 +31,12 @@ type ProductFormState = {
   colorsText: string;
   width: number;
   height: number;
+  dimensionOptionOneLabel: string;
+  dimensionOptionOneWidth: number;
+  dimensionOptionOneHeight: number;
+  dimensionOptionTwoLabel: string;
+  dimensionOptionTwoWidth: number;
+  dimensionOptionTwoHeight: number;
   depth: number;
   weight: number;
   material: string;
@@ -117,9 +128,15 @@ const EMPTY_FORM: ProductFormState = {
   sortOrder: 0,
   featuresText: '',
   additionalImagesText: '',
-  colorsText: 'White|#ffffff',
+  colorsText: DEFAULT_PRODUCT_COLORS.map((color) => `${color.name}|${color.value}`).join('\n'),
   width: 0,
   height: 0,
+  dimensionOptionOneLabel: 'Standard',
+  dimensionOptionOneWidth: 55,
+  dimensionOptionOneHeight: 55,
+  dimensionOptionTwoLabel: 'Large',
+  dimensionOptionTwoWidth: 65,
+  dimensionOptionTwoHeight: 55,
   depth: 0,
   weight: 0,
   material: 'PVC',
@@ -146,38 +163,87 @@ const parseColors = (value: string): Color[] => {
     })
     .filter((color): color is Color => color !== null);
 
-  return parsed.length > 0 ? parsed : [{ name: 'White', value: '#ffffff' }];
+  if (parsed.length === 0) {
+    return DEFAULT_PRODUCT_COLORS;
+  }
+
+  if (parsed.length >= DEFAULT_PRODUCT_COLORS.length) {
+    return parsed;
+  }
+
+  const existing = new Set(parsed.map((color) => color.name.toLowerCase()));
+  return [
+    ...parsed,
+    ...DEFAULT_PRODUCT_COLORS.filter((color) => !existing.has(color.name.toLowerCase())),
+  ].slice(0, DEFAULT_PRODUCT_COLORS.length);
 };
 
 const colorsToText = (colors: Color[]): string =>
-  colors
+  (colors.length > 0 ? parseColors(colors.map((color) => `${color.name}|${color.value}`).join('\n')) : DEFAULT_PRODUCT_COLORS)
     .map((color) => `${color.name}|${color.value}`)
     .join('\n');
 
-const productToForm = (product: Product): ProductFormState => ({
-  id: product.id,
-  name: product.name,
-  slug: product.slug,
-  category: product.category,
-  price: product.price,
-  description: product.description,
-  imageUrl: product.imageUrl,
-  inStock: product.inStock,
-  isPublished: product.isPublished,
-  sortOrder: product.sortOrder,
-  featuresText: product.features.join('\n'),
-  additionalImagesText: product.additionalImages.join('\n'),
-  colorsText: colorsToText(product.colors),
-  width: product.dimensions.width,
-  height: product.dimensions.height,
-  depth: product.dimensions.depth,
-  weight: product.dimensions.weight,
-  material: product.specifications.material,
-  finish: product.specifications.finish,
-  handleType: product.specifications.handleType,
-  hingeType: product.specifications.hingeType,
-  mountingType: product.specifications.mountingType,
-});
+const getDimensionOptionsForProduct = (product: Product): DimensionOption[] => {
+  const defaults = buildDefaultDimensionOptions(product.dimensions);
+  const options = product.dimensionOptions.length > 0 ? product.dimensionOptions : defaults;
+
+  if (options.length === 1) {
+    return [options[0], defaults[1]];
+  }
+
+  return options.slice(0, 2);
+};
+
+const getDimensionOptionsForForm = (form: ProductFormState): DimensionOption[] => [
+  {
+    id: normalizeDimensionOptionId(form.dimensionOptionOneLabel, 0),
+    label: form.dimensionOptionOneLabel.trim() || 'Standard',
+    width: Number.isFinite(form.dimensionOptionOneWidth) ? form.dimensionOptionOneWidth : 0,
+    height: Number.isFinite(form.dimensionOptionOneHeight) ? form.dimensionOptionOneHeight : 0,
+  },
+  {
+    id: normalizeDimensionOptionId(form.dimensionOptionTwoLabel, 1),
+    label: form.dimensionOptionTwoLabel.trim() || 'Large',
+    width: Number.isFinite(form.dimensionOptionTwoWidth) ? form.dimensionOptionTwoWidth : 0,
+    height: Number.isFinite(form.dimensionOptionTwoHeight) ? form.dimensionOptionTwoHeight : 0,
+  },
+];
+
+const productToForm = (product: Product): ProductFormState => {
+  const dimensionOptions = getDimensionOptionsForProduct(product);
+  const [firstOption, secondOption] = dimensionOptions;
+
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    category: product.category,
+    price: product.price,
+    description: product.description,
+    imageUrl: product.imageUrl,
+    inStock: product.inStock,
+    isPublished: product.isPublished,
+    sortOrder: product.sortOrder,
+    featuresText: product.features.join('\n'),
+    additionalImagesText: product.additionalImages.join('\n'),
+    colorsText: colorsToText(product.colors),
+    width: firstOption.width,
+    height: firstOption.height,
+    dimensionOptionOneLabel: firstOption.label,
+    dimensionOptionOneWidth: firstOption.width,
+    dimensionOptionOneHeight: firstOption.height,
+    dimensionOptionTwoLabel: secondOption.label,
+    dimensionOptionTwoWidth: secondOption.width,
+    dimensionOptionTwoHeight: secondOption.height,
+    depth: product.dimensions.depth,
+    weight: product.dimensions.weight,
+    material: product.specifications.material,
+    finish: product.specifications.finish,
+    handleType: product.specifications.handleType,
+    hingeType: product.specifications.hingeType,
+    mountingType: product.specifications.mountingType,
+  };
+};
 
 const AdminDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -345,6 +411,13 @@ const AdminDashboardPage: React.FC = () => {
       setFormError('Main image URL is required.');
       return;
     }
+    const dimensionOptions = getDimensionOptionsForForm(formState);
+    if (dimensionOptions.some((option) => option.width <= 0 || option.height <= 0)) {
+      setFormError(t('admin.dashboard.validation.dimensionsRequired'));
+      return;
+    }
+
+    const [defaultDimensionOption] = dimensionOptions;
 
     const payload = {
       name: formState.name.trim(),
@@ -360,11 +433,12 @@ const AdminDashboardPage: React.FC = () => {
       additionalImages: toLines(formState.additionalImagesText),
       colors: parseColors(formState.colorsText),
       dimensions: {
-        width: Number.isFinite(formState.width) ? formState.width : 0,
-        height: Number.isFinite(formState.height) ? formState.height : 0,
+        width: defaultDimensionOption.width,
+        height: defaultDimensionOption.height,
         depth: Number.isFinite(formState.depth) ? formState.depth : 0,
         weight: Number.isFinite(formState.weight) ? formState.weight : 0,
       },
+      dimensionOptions,
       specifications: {
         material: formState.material.trim(),
         finish: formState.finish.trim(),
@@ -747,9 +821,23 @@ const AdminDashboardPage: React.FC = () => {
               <textarea className="px-3 py-2 border rounded-md md:col-span-2" rows={3} placeholder="Description" value={formState.description} onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))} />
               <textarea className="px-3 py-2 border rounded-md" rows={4} placeholder="Features (one per line)" value={formState.featuresText} onChange={(event) => setFormState((prev) => ({ ...prev, featuresText: event.target.value }))} />
               <textarea className="px-3 py-2 border rounded-md" rows={4} placeholder="Additional image URLs (one per line)" value={formState.additionalImagesText} onChange={(event) => setFormState((prev) => ({ ...prev, additionalImagesText: event.target.value }))} />
-              <textarea className="px-3 py-2 border rounded-md md:col-span-2" rows={2} placeholder="Colors (one per line: Name|#hex)" value={formState.colorsText} onChange={(event) => setFormState((prev) => ({ ...prev, colorsText: event.target.value }))} />
-              <input type="number" className="px-3 py-2 border rounded-md" placeholder="Width" value={formState.width} onChange={(event) => setFormState((prev) => ({ ...prev, width: Number(event.target.value) }))} />
-              <input type="number" className="px-3 py-2 border rounded-md" placeholder="Height" value={formState.height} onChange={(event) => setFormState((prev) => ({ ...prev, height: Number(event.target.value) }))} />
+              <textarea className="px-3 py-2 border rounded-md md:col-span-2" rows={4} placeholder={t('admin.dashboard.form.colorsHelp')} value={formState.colorsText} onChange={(event) => setFormState((prev) => ({ ...prev, colorsText: event.target.value }))} />
+              <div className="rounded-lg border border-siena-100 bg-siena-50 p-3 md:col-span-2">
+                <p className="mb-3 text-sm font-semibold text-siena-800">{t('admin.dashboard.form.dimensionOptionOne')}</p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <input className="px-3 py-2 border rounded-md" placeholder={t('admin.dashboard.form.optionLabel')} value={formState.dimensionOptionOneLabel} onChange={(event) => setFormState((prev) => ({ ...prev, dimensionOptionOneLabel: event.target.value }))} />
+                  <input type="number" className="px-3 py-2 border rounded-md" placeholder={t('products.dimensions.width')} value={formState.dimensionOptionOneWidth} onChange={(event) => setFormState((prev) => ({ ...prev, dimensionOptionOneWidth: Number(event.target.value), width: Number(event.target.value) }))} />
+                  <input type="number" className="px-3 py-2 border rounded-md" placeholder={t('products.dimensions.height')} value={formState.dimensionOptionOneHeight} onChange={(event) => setFormState((prev) => ({ ...prev, dimensionOptionOneHeight: Number(event.target.value), height: Number(event.target.value) }))} />
+                </div>
+              </div>
+              <div className="rounded-lg border border-siena-100 bg-siena-50 p-3 md:col-span-2">
+                <p className="mb-3 text-sm font-semibold text-siena-800">{t('admin.dashboard.form.dimensionOptionTwo')}</p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <input className="px-3 py-2 border rounded-md" placeholder={t('admin.dashboard.form.optionLabel')} value={formState.dimensionOptionTwoLabel} onChange={(event) => setFormState((prev) => ({ ...prev, dimensionOptionTwoLabel: event.target.value }))} />
+                  <input type="number" className="px-3 py-2 border rounded-md" placeholder={t('products.dimensions.width')} value={formState.dimensionOptionTwoWidth} onChange={(event) => setFormState((prev) => ({ ...prev, dimensionOptionTwoWidth: Number(event.target.value) }))} />
+                  <input type="number" className="px-3 py-2 border rounded-md" placeholder={t('products.dimensions.height')} value={formState.dimensionOptionTwoHeight} onChange={(event) => setFormState((prev) => ({ ...prev, dimensionOptionTwoHeight: Number(event.target.value) }))} />
+                </div>
+              </div>
               <input type="number" className="px-3 py-2 border rounded-md" placeholder="Depth" value={formState.depth} onChange={(event) => setFormState((prev) => ({ ...prev, depth: Number(event.target.value) }))} />
               <input type="number" className="px-3 py-2 border rounded-md" placeholder="Weight" value={formState.weight} onChange={(event) => setFormState((prev) => ({ ...prev, weight: Number(event.target.value) }))} />
               <input className="px-3 py-2 border rounded-md" placeholder="Material" value={formState.material} onChange={(event) => setFormState((prev) => ({ ...prev, material: event.target.value }))} />

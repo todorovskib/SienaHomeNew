@@ -8,6 +8,7 @@ export interface Product {
   features: string[];
   colors: Color[];
   dimensions: Dimensions;
+  dimensionOptions: DimensionOption[];
   imageUrl: string;
   additionalImages: string[];
   inStock: boolean;
@@ -39,6 +40,18 @@ export interface Dimensions {
   height: number;
   depth: number;
   weight: number;
+}
+
+export interface DimensionOption {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+}
+
+export interface SelectedProductOptions {
+  color?: Color;
+  dimensionOption?: DimensionOption;
 }
 
 export interface Testimonial {

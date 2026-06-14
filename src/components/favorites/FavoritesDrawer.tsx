@@ -6,6 +6,7 @@ import { useFavorites } from '../../contexts/FavoritesContext';
 import { useCart } from '../../contexts/CartContext';
 import { useAnalytics } from '../../contexts/AnalyticsContext';
 import { formatPrice } from '../../utils/price';
+import { Product } from '../../types';
 import Button from '../ui/Button';
 
 interface FavoritesDrawerProps {
@@ -37,7 +38,7 @@ const FavoritesDrawer: React.FC<FavoritesDrawerProps> = ({ isOpen, onClose }) =>
     onClose();
   };
 
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = (product: Product) => {
     addToCart(product, 1);
     trackEvent('add_to_cart', {
       entityType: 'product',

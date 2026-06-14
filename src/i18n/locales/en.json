@@ -197,6 +197,15 @@
     "addToFavorites": "Add to Favorites",
     "removeFromFavorites": "Remove from Favorites",
     "customOrderNote": "Custom orders are available. Contact us for more information.",
+    "color": "Color",
+    "chooseColor": "Choose color",
+    "chooseDimensions": "Choose dimensions",
+    "colors": {
+      "black": "Black",
+      "white": "White",
+      "gray": "Gray",
+      "red": "Red"
+    },
     "description": "Description",
     "specifications": "Specifications",
     "dimensions": {
@@ -585,13 +594,18 @@
         "colors": "Colors",
         "addColor": "Add Color",
         "colorName": "Color Name",
+        "colorsHelp": "Colors, one per line: Black|#111111",
         "dimensions": "Dimensions",
+        "dimensionOptionOne": "Dimension option 1",
+        "dimensionOptionTwo": "Dimension option 2",
+        "optionLabel": "Option label",
         "specifications": "Specifications",
         "save": "Save",
         "cancel": "Cancel"
       },
       "validation": {
-        "nameRequired": "Product name is required"
+        "nameRequired": "Product name is required",
+        "dimensionsRequired": "Both dimension options need a width and height greater than 0."
       }
     }
   },

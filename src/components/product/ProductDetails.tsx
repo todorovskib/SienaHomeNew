@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Minus, Plus, MessageSquare, Heart, ShoppingCart } from 'lucide-react';
-import { ProductDetails as ProductDetailsType } from '../../types';
+import { Color, DimensionOption, ProductDetails as ProductDetailsType } from '../../types';
 import { useFavorites } from '../../contexts/FavoritesContext';
 import { useCart } from '../../contexts/CartContext';
 import { useAnalytics } from '../../contexts/AnalyticsContext';
@@ -24,9 +24,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
   const { trackEvent } = useAnalytics();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(product.imageUrl);
+  const [selectedColor, setSelectedColor] = useState<Color | undefined>(product.colors[0]);
+  const [selectedDimensionOption, setSelectedDimensionOption] = useState<DimensionOption | undefined>(
+    product.dimensionOptions[0],
+  );
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   const isProductFavorite = isFavorite(product.id);
+  const activeDimensionOption = selectedDimensionOption ?? product.dimensionOptions[0];
 
   useEffect(() => {
     trackEvent('product_view', {
@@ -39,6 +44,13 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
       },
     });
   }, [product.id, product.name, product.price, product.slug, trackEvent]);
+
+  useEffect(() => {
+    setQuantity(1);
+    setSelectedImage(product.imageUrl);
+    setSelectedColor(product.colors[0]);
+    setSelectedDimensionOption(product.dimensionOptions[0]);
+  }, [product.id, product.imageUrl, product.colors, product.dimensionOptions]);
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
@@ -71,7 +83,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
   };
 
   const handleAddToCart = () => {
-    addToCart(product, quantity);
+    addToCart(product, quantity, {
+      color: selectedColor,
+      dimensionOption: activeDimensionOption,
+    });
     trackEvent('add_to_cart', {
       entityType: 'product',
       entityId: product.id,
@@ -80,6 +95,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
         product_name: product.name,
         quantity,
         price: product.price,
+        selected_color: selectedColor?.name,
+        selected_dimension: activeDimensionOption
+          ? `${activeDimensionOption.width}x${activeDimensionOption.height}`
+          : undefined,
       },
     });
   };
@@ -92,6 +111,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
       return t(text);
     }
     return text;
+  };
+
+  const getColorLabel = (color: Color) => {
+    const key = color.name.toLowerCase();
+    if (['black', 'white', 'gray', 'red'].includes(key)) {
+      return t(`products.colors.${key}`);
+    }
+    return color.name;
   };
 
   return (
@@ -150,6 +177,69 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
             </p>
           </div>
 
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3 text-siena-700">
+              {t('products.chooseColor')}
+            </h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {product.colors.map((color) => {
+                const isSelected = selectedColor?.name === color.name && selectedColor?.value === color.value;
+                return (
+                  <button
+                    key={`${color.name}-${color.value}`}
+                    type="button"
+                    onClick={() => setSelectedColor(color)}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition-all duration-200 ${
+                      isSelected
+                        ? 'border-siena-500 bg-siena-50 ring-2 ring-siena-100'
+                        : 'border-siena-200 bg-white hover:border-siena-300 hover:bg-siena-50'
+                    }`}
+                    aria-pressed={isSelected}
+                  >
+                    <span
+                      className="h-6 w-6 rounded-full border border-gray-200 shadow-inner"
+                      style={{ backgroundColor: color.value }}
+                      aria-hidden="true"
+                    />
+                    <span className="font-medium text-siena-800">{getColorLabel(color)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3 text-siena-700">
+              {t('products.chooseDimensions')}
+            </h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {product.dimensionOptions.map((option) => {
+                const isSelected = activeDimensionOption?.id === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setSelectedDimensionOption(option)}
+                    className={`rounded-xl border p-4 text-left transition-all duration-200 ${
+                      isSelected
+                        ? 'border-siena-500 bg-siena-50 ring-2 ring-siena-100'
+                        : 'border-siena-200 bg-white hover:border-siena-300 hover:bg-siena-50'
+                    }`}
+                    aria-pressed={isSelected}
+                  >
+                    <span className="block text-sm font-semibold text-siena-800">{option.label}</span>
+                    <span className="mt-1 block text-sm text-gray-600">
+                      {t('products.dimensions.width')}: {option.width} cm
+                    </span>
+                    <span className="block text-sm text-gray-600">
+                      {t('products.dimensions.height')}: {option.height} cm
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Features */}
           <div className="mb-6">
             <h2 className="text-lg font-semibold mb-2 text-siena-700">
@@ -196,28 +286,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                   {t('products.dimensions.width')}
                   :
                 </span>
-                <span className="text-gray-600">{product.dimensions.width} cm</span>
+                <span className="text-gray-600">{activeDimensionOption?.width ?? product.dimensions.width} cm</span>
               </div>
               <div className="bg-siena-50 p-3 rounded-lg">
                 <span className="font-medium text-siena-700">
                   {t('products.dimensions.height')}
                   :
                 </span>
-                <span className="text-gray-600">{product.dimensions.height} cm</span>
-              </div>
-              <div className="bg-siena-50 p-3 rounded-lg">
-                <span className="font-medium text-siena-700">
-                  {t('products.dimensions.depth')}
-                  :
-                </span>
-                <span className="text-gray-600">{product.dimensions.depth} cm</span>
-              </div>
-              <div className="bg-siena-50 p-3 rounded-lg">
-                <span className="font-medium text-siena-700">
-                  {t('products.dimensions.weight')}
-                  :
-                </span>
-                <span className="text-gray-600">{product.dimensions.weight} kg</span>
+                <span className="text-gray-600">{activeDimensionOption?.height ?? product.dimensions.height} cm</span>
               </div>
             </div>
           </div>

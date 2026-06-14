@@ -197,6 +197,15 @@
     "addToFavorites": "Додади во омилени",
     "removeFromFavorites": "Отстрани од омилени",
     "customOrderNote": "Достапни се и во други димензии. Контактирајте не за повеќе информации.",
+    "color": "Боја",
+    "chooseColor": "Изберете боја",
+    "chooseDimensions": "Изберете димензии",
+    "colors": {
+      "black": "Црна",
+      "white": "Бела",
+      "gray": "Сива",
+      "red": "Црвена"
+    },
     "description": "Опис",
     "features": "Карактеристики",
     "specifications": "Спецификации",
@@ -546,13 +555,18 @@
         "colors": "Бои",
         "addColor": "Додај боја",
         "colorName": "Име на боја",
+        "colorsHelp": "Бои, една по линија: Black|#111111",
         "dimensions": "Димензии",
+        "dimensionOptionOne": "Опција за димензии 1",
+        "dimensionOptionTwo": "Опција за димензии 2",
+        "optionLabel": "Име на опција",
         "specifications": "Спецификации",
         "save": "Зачувај",
         "cancel": "Откажи"
       },
       "validation": {
-        "nameRequired": "Името на производот е задолжително"
+        "nameRequired": "Името на производот е задолжително",
+        "dimensionsRequired": "Двете опции за димензии мора да имаат ширина и висина поголеми од 0."
       },
       "analytics": {
         "title": "Напредна аналитика",

@@ -21,6 +21,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
   const currentLang = location.pathname.split('/')[1] || 'mk';
 
+  const getColorLabel = (name: string) => {
+    const key = name.toLowerCase();
+    if (['black', 'white', 'gray', 'red'].includes(key)) {
+      return t(`products.colors.${key}`);
+    }
+    return name;
+  };
+
   const handleCheckout = () => {
     trackEvent('checkout_start', {
       entityType: 'cart',
@@ -72,7 +80,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             ) : (
               <div className="space-y-4">
                 {state.items.map((item) => (
-                  <div key={item.product.id} className="flex items-center space-x-3 bg-gradient-to-r from-gray-50 to-siena-50 p-3 md:p-4 rounded-lg border border-siena-100 hover:border-siena-200 transition-colors duration-200">
+                  <div key={item.id} className="flex items-center space-x-3 bg-gradient-to-r from-gray-50 to-siena-50 p-3 md:p-4 rounded-lg border border-siena-100 hover:border-siena-200 transition-colors duration-200">
                     <img
                       src={item.product.imageUrl}
                       alt={item.product.name}
@@ -83,12 +91,29 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       <p className="mt-1 text-sm font-semibold text-siena-700">
                         {formatPrice(item.product.price, i18n.resolvedLanguage)}
                       </p>
+                      <div className="mt-2 space-y-1 text-xs text-gray-600">
+                        {item.selectedOptions?.color && (
+                          <p className="flex items-center gap-2">
+                            <span
+                              className="h-3 w-3 rounded-full border border-gray-300"
+                              style={{ backgroundColor: item.selectedOptions.color.value }}
+                              aria-hidden="true"
+                            />
+                            <span>{t('products.color')}: {getColorLabel(item.selectedOptions.color.name)}</span>
+                          </p>
+                        )}
+                        {item.selectedOptions?.dimensionOption && (
+                          <p>
+                            {t('products.dimensions.title')}: {item.selectedOptions.dimensionOption.width} x {item.selectedOptions.dimensionOption.height} cm
+                          </p>
+                        )}
+                      </div>
 
                       <div className="flex items-center space-x-2 mt-2">
                         <button
                           onClick={() => {
                             const nextQuantity = item.quantity - 1;
-                            updateQuantity(item.product.id, nextQuantity);
+                            updateQuantity(item.id, nextQuantity);
                             trackEvent('cart_quantity_change', {
                               entityType: 'product',
                               entityId: item.product.id,
@@ -109,7 +134,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         <button
                           onClick={() => {
                             const nextQuantity = item.quantity + 1;
-                            updateQuantity(item.product.id, nextQuantity);
+                            updateQuantity(item.id, nextQuantity);
                             trackEvent('cart_quantity_change', {
                               entityType: 'product',
                               entityId: item.product.id,
@@ -127,7 +152,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         </button>
                         <button
                           onClick={() => {
-                            removeFromCart(item.product.id);
+                            removeFromCart(item.id);
                             trackEvent('cart_remove', {
                               entityType: 'product',
                               entityId: item.product.id,

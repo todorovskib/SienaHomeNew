@@ -2,7 +2,12 @@ import React, { createContext, useCallback, useContext, useEffect, useState, Rea
 import { supabase } from '../lib/supabase';
 import { useAuth } from './SupabaseAuthContext';
 import { initialProducts } from '../data/products';
-import { Color, Dimensions, Product } from '../types';
+import { Color, DimensionOption, Dimensions, Product } from '../types';
+import {
+  buildDefaultDimensionOptions,
+  DEFAULT_PRODUCT_COLORS,
+  normalizeDimensionOptionId,
+} from '../utils/productOptions';
 
 type ProductMutationInput = Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'slug'> & {
   slug?: string;
@@ -47,7 +52,7 @@ interface DbProductPayload {
   description: string;
   features: string[];
   colors: Color[];
-  dimensions: Dimensions;
+  dimensions: Dimensions & { options?: DimensionOption[] };
   specifications: Product['specifications'];
   main_image_url: string;
   additional_images: string[];
@@ -115,10 +120,10 @@ const normalizeStringArray = (value: unknown): string[] => {
 
 const normalizeColors = (value: unknown): Color[] => {
   if (!Array.isArray(value)) {
-    return [];
+    return DEFAULT_PRODUCT_COLORS;
   }
 
-  return value
+  const parsed = value
     .map((item) => {
       if (!isRecord(item)) {
         return null;
@@ -133,6 +138,20 @@ const normalizeColors = (value: unknown): Color[] => {
       return { name, value: colorValue };
     })
     .filter((item): item is Color => item !== null);
+
+  if (parsed.length === 0) {
+    return DEFAULT_PRODUCT_COLORS;
+  }
+
+  if (parsed.length >= DEFAULT_PRODUCT_COLORS.length) {
+    return parsed;
+  }
+
+  const existing = new Set(parsed.map((color) => color.name.toLowerCase()));
+  return [
+    ...parsed,
+    ...DEFAULT_PRODUCT_COLORS.filter((color) => !existing.has(color.name.toLowerCase())),
+  ].slice(0, DEFAULT_PRODUCT_COLORS.length);
 };
 
 const normalizeDimensions = (value: unknown): Dimensions => {
@@ -146,6 +165,50 @@ const normalizeDimensions = (value: unknown): Dimensions => {
     depth: toSafeNumber(value.depth, 0),
     weight: toSafeNumber(value.weight, 0),
   };
+};
+
+const normalizeDimensionOptions = (
+  value: unknown,
+  fallbackDimensions: Dimensions,
+): DimensionOption[] => {
+  const fallback = buildDefaultDimensionOptions(fallbackDimensions);
+
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  const parsed = value
+    .map((item, index) => {
+      if (!isRecord(item)) {
+        return null;
+      }
+
+      const label = normalizeString(item.label, `Option ${index + 1}`).trim();
+      const width = toSafeNumber(item.width, 0);
+      const height = toSafeNumber(item.height, 0);
+      if (!label || width <= 0 || height <= 0) {
+        return null;
+      }
+
+      return {
+        id: normalizeString(item.id, normalizeDimensionOptionId(label, index)),
+        label,
+        width,
+        height,
+      };
+    })
+    .filter((item): item is DimensionOption => item !== null)
+    .slice(0, 2);
+
+  if (parsed.length === 0) {
+    return fallback;
+  }
+
+  if (parsed.length === 1) {
+    return [parsed[0], fallback[1]];
+  }
+
+  return parsed;
 };
 
 const normalizeSpecifications = (value: unknown): Product['specifications'] => {
@@ -209,30 +272,40 @@ const ensureUniqueSlug = (candidate: string, currentId: string | null, products:
   return next;
 };
 
-const mapDbToProduct = (row: DbProductRow): Product => ({
-  id: row.id,
-  name: normalizeString(row.name, 'Untitled Product'),
-  slug: normalizeString(row.slug, slugify(normalizeString(row.name, 'product'))),
-  category: normalizeString(row.category, DEFAULT_CATEGORY),
-  price: toSafeNumber(row.price, 0),
-  description: normalizeString(row.description),
-  features: normalizeStringArray(row.features),
-  colors: normalizeColors(row.colors),
-  dimensions: normalizeDimensions(row.dimensions),
-  specifications: normalizeSpecifications(row.specifications),
-  imageUrl: normalizeString(row.main_image_url),
-  additionalImages: normalizeStringArray(row.additional_images),
-  inStock: row.in_stock ?? true,
-  isPublished: row.is_published ?? true,
-  sortOrder: toSafeNumber(row.sort_order, 0),
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+const getDimensionOptionsFromDimensions = (value: unknown): unknown =>
+  isRecord(value) ? value.options : undefined;
+
+const mapDbToProduct = (row: DbProductRow): Product => {
+  const dimensions = normalizeDimensions(row.dimensions);
+
+  return {
+    id: row.id,
+    name: normalizeString(row.name, 'Untitled Product'),
+    slug: normalizeString(row.slug, slugify(normalizeString(row.name, 'product'))),
+    category: normalizeString(row.category, DEFAULT_CATEGORY),
+    price: toSafeNumber(row.price, 0),
+    description: normalizeString(row.description),
+    features: normalizeStringArray(row.features),
+    colors: normalizeColors(row.colors),
+    dimensions,
+    dimensionOptions: normalizeDimensionOptions(getDimensionOptionsFromDimensions(row.dimensions), dimensions),
+    specifications: normalizeSpecifications(row.specifications),
+    imageUrl: normalizeString(row.main_image_url),
+    additionalImages: normalizeStringArray(row.additional_images),
+    inStock: row.in_stock ?? true,
+    isPublished: row.is_published ?? true,
+    sortOrder: toSafeNumber(row.sort_order, 0),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+};
 
 const mapLooseToProduct = (product: LooseProduct, index: number): Product => {
   const name = normalizeString(product.name, `Product ${index + 1}`);
   const fallbackSlug = slugify(name);
   const slug = normalizeString(product.slug, fallbackSlug);
+
+  const dimensions = normalizeDimensions(product.dimensions);
 
   return {
     id: normalizeString(product.id, `local-${index + 1}`),
@@ -243,7 +316,11 @@ const mapLooseToProduct = (product: LooseProduct, index: number): Product => {
     description: normalizeString(product.description),
     features: normalizeStringArray(product.features),
     colors: normalizeColors(product.colors),
-    dimensions: normalizeDimensions(product.dimensions),
+    dimensions,
+    dimensionOptions: normalizeDimensionOptions(
+      product.dimensionOptions ?? getDimensionOptionsFromDimensions(product.dimensions),
+      dimensions,
+    ),
     specifications: normalizeSpecifications(product.specifications),
     imageUrl: normalizeString(product.imageUrl ?? product.main_image_url),
     additionalImages: normalizeStringArray(product.additionalImages ?? product.additional_images),
@@ -263,7 +340,10 @@ const buildDbPayload = (product: Product): DbProductPayload => ({
   description: product.description ?? '',
   features: normalizeStringArray(product.features),
   colors: normalizeColors(product.colors),
-  dimensions: normalizeDimensions(product.dimensions),
+  dimensions: {
+    ...normalizeDimensions(product.dimensions),
+    options: normalizeDimensionOptions(product.dimensionOptions, product.dimensions),
+  },
   specifications: normalizeSpecifications(product.specifications),
   main_image_url: product.imageUrl,
   additional_images: normalizeStringArray(product.additionalImages),
@@ -359,6 +439,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       const nextSortOrder = products.length > 0 ? Math.max(...products.map((product) => product.sortOrder)) + 1 : 1;
       const slug = ensureUniqueSlug(input.slug ?? input.name, null, products);
 
+      const dimensions = normalizeDimensions(input.dimensions);
       const candidate: Product = {
         id: '',
         name: input.name.trim(),
@@ -368,7 +449,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         description: input.description ?? '',
         features: normalizeStringArray(input.features),
         colors: normalizeColors(input.colors),
-        dimensions: normalizeDimensions(input.dimensions),
+        dimensions,
+        dimensionOptions: normalizeDimensionOptions(input.dimensionOptions, dimensions),
         imageUrl: input.imageUrl ?? '',
         additionalImages: normalizeStringArray(input.additionalImages),
         inStock: input.inStock ?? true,
@@ -413,10 +495,14 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         throw new Error('Product not found.');
       }
 
+      const nextDimensions = updates.dimensions ? normalizeDimensions(updates.dimensions) : current.dimensions;
       const merged: Product = {
         ...current,
         ...updates,
-        dimensions: updates.dimensions ? normalizeDimensions(updates.dimensions) : current.dimensions,
+        dimensions: nextDimensions,
+        dimensionOptions: updates.dimensionOptions
+          ? normalizeDimensionOptions(updates.dimensionOptions, nextDimensions)
+          : current.dimensionOptions,
         specifications: updates.specifications
           ? normalizeSpecifications({ ...current.specifications, ...updates.specifications })
           : current.specifications,
